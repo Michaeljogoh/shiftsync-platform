@@ -51,9 +51,11 @@ export function NavUser() {
     : '?';
 
   function handleLogout() {
-    clearAuth();
-    router.push('/login');
-    router.refresh();
+    router.push('/');
+    setTimeout(() => {
+      clearAuth();
+      router.refresh();
+    }, 100);
   }
 
   return (
