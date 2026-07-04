@@ -167,12 +167,12 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
       <LandingNav isAuthenticated={isAuthenticated} />
 
       {/* Hero */}
-      {/* <section className="relative overflow-hidden bg-brand-teal-deep">
+      <section className="relative min-h-screen overflow-hidden bg-brand-teal-deep">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,237,100,0.12),transparent)]"
           aria-hidden
         />
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 pb-20 pt-24 sm:px-8 sm:pt-28 lg:grid-cols-2 lg:items-center lg:gap-16 lg:pb-28 lg:pt-32">
+        <div className="mx-auto grid max-w-7xl gap-12 px-4 pb-32 pt-20 sm:px-8 sm:pt-24 lg:grid-cols-2 lg:items-center lg:gap-16 lg:pb-40 lg:pt-28">
           <motion.div
             initial={reduceMotion ? false : "hidden"}
             animate="visible"
@@ -232,7 +232,7 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
             <SchedulePreview />
           </motion.div>
         </div>
-      </section> */}
+      </section>
 
       {/* Logo wall */}
       <section className="border-b border-landing-hairline bg-white py-12">
