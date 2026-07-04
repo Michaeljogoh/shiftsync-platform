@@ -175,41 +175,20 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
 
 
         <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl gap-12 px-4 pb-20 pt-20 sm:px-8 sm:pt-24 lg:grid-cols-2 lg:items-center lg:gap-16 lg:pt-[35vh]">
-          <motion.div
-            initial={reduceMotion ? false : "hidden"}
-            animate="visible"
-            variants={staggerContainer}
-            className="max-w-xl"
-          >
-            <motion.p
-              variants={fadeUp}
-              transition={{ duration: 0.5, ease: easeOut }}
-              className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-green"
-            >
+          <div className="max-w-xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-green">
               Multi-location scheduling
-            </motion.p>
-            <motion.h1
-              variants={fadeUp}
-              transition={{ duration: 0.55, ease: easeOut, delay: 0.05 }}
-              className="mt-4 text-4xl font-medium leading-[1.1] tracking-[-0.03em] text-white sm:text-5xl lg:text-[3.5rem]"
-            >
+            </p>
+            <h1 className="mt-4 text-4xl font-medium leading-[1.1] tracking-[-0.03em] text-white sm:text-5xl lg:text-[3.5rem]">
               One schedule.
               <br />
               Every location in sync.
-            </motion.h1>
-            <motion.p
-              variants={fadeUp}
-              transition={{ duration: 0.55, ease: easeOut, delay: 0.1 }}
-              className="mt-5 max-w-md text-base leading-relaxed text-landing-muted sm:text-lg"
-            >
+            </h1>
+            <p className="mt-5 max-w-md text-base leading-relaxed text-landing-muted sm:text-lg">
               ShiftSync helps restaurant groups plan shifts, enforce labor rules,
               and keep staff updated across sites in real time.
-            </motion.p>
-            <motion.div
-              variants={fadeUp}
-              transition={{ duration: 0.55, ease: easeOut, delay: 0.15 }}
-              className="mt-8 flex flex-wrap items-center gap-3"
-            >
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href={isAuthenticated ? "/dashboard" : "/signup"}
                 className="inline-flex h-11 items-center rounded-full bg-brand-green px-6 text-sm font-semibold text-landing-ink transition-transform active:scale-[0.97]"
@@ -222,17 +201,12 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
               >
                 See features
               </a>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 32 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, ease: easeOut, delay: 0.2 }}
-            className="flex justify-center lg:justify-end"
-          >
+          <div className="flex justify-center lg:justify-end">
             <SchedulePreview />
-          </motion.div>
+          </div>
         </div>
 
 

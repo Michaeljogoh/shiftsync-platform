@@ -15,6 +15,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import type { LoginInput } from '@/lib/validations/auth';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { apiClient } from '@/lib/api/client/client';
@@ -133,9 +134,8 @@ export function LoginForm({
                 Password
               </FieldLabel>
             </div>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="current-password"
               aria-invalid={!!errors.password}
               className="h-11 rounded-lg border-landing-hairline bg-white px-3.5 text-base focus-visible:border-brand-green focus-visible:ring-brand-green/25 md:text-sm"
@@ -174,6 +174,20 @@ export function LoginForm({
           </Button>
         </FieldGroup>
       </form>
+
+      <div className="rounded-lg border border-landing-hairline bg-landing-surface px-4 py-3">
+        <p className="text-xs leading-relaxed text-landing-steel">
+          <span className="font-medium text-landing-ink">Demo access:</span> use{' '}
+          <span className="font-mono text-[11px] text-brand-green-dark">
+            admin@coastaleats.com
+          </span>{' '}
+          /{' '}
+          <span className="font-mono text-[11px] text-brand-green-dark">
+            Admin1234!
+          </span>{' '}
+          to explore the dashboard after signing in.
+        </p>
+      </div>
 
       <p className="text-center text-sm text-landing-steel">
         Don&apos;t have an account?{' '}

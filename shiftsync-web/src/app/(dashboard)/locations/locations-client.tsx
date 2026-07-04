@@ -14,14 +14,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { PageHeader } from '@/components/dashboard/page-header';
-import { DashboardCard } from '@/components/dashboard/dashboard-card';
 import { apiClient } from '@/lib/api/client/client';
 import { RoleGate } from '@/components/shared/RoleGate';
 import { FullPageError } from '@/components/shared/FullPageError';
 import { PaginationControls, usePagination } from '@/components/shared/PaginationControls';
 import {
+  MapPinIcon,
   PencilIcon,
   PlusIcon,
   Trash2Icon,
@@ -265,43 +273,55 @@ export function LocationsClient() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {pagedLocations.map((loc) => (
-          <DashboardCard
+          <div
             key={loc.id}
-            title={loc.name}
-            hoverable
-            className="cursor-pointer"
-            action={
-              <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            className="group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border border-landing-hairline bg-white p-5 shadow-[0_1px_3px_rgba(0,30,43,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:border-white/10 hover:shadow-[0_12px_28px_-6px_rgba(0,30,43,0.28)]"
+            onClick={() => { setDetailLocation(loc); setStaffSheetPage(1); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { setDetailLocation(loc); setStaffSheetPage(1); } }}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="pointer-events-none absolute inset-0 bg-brand-teal-deep opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden />
+            <div className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-brand-green/20 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" aria-hidden />
+            <div className="pointer-events-none absolute -bottom-12 left-1/4 size-40 rounded-full bg-brand-teal/40 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" aria-hidden />
+
+            <div className="relative z-10 flex items-start justify-between gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green-dark transition-colors duration-300 group-hover:bg-white/15 group-hover:text-brand-green">
+                <MapPinIcon className="size-5" strokeWidth={2} />
+              </div>
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                 <RoleGate role={['admin']}>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(loc)}>
-                    <PencilIcon className="size-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => setDeleteConfirm(loc)}>
-                    <Trash2Icon className="size-3.5" />
-                  </Button>
+                  <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button variant="ghost" size="sm" className="size-8 p-0 hover:bg-white/15 group-hover:text-white" onClick={() => openEdit(loc)}>
+                      <PencilIcon className="size-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="size-8 p-0 text-destructive hover:bg-red-500/20 group-hover:text-red-400" onClick={() => setDeleteConfirm(loc)}>
+                      <Trash2Icon className="size-3.5" />
+                    </Button>
+                  </div>
                 </RoleGate>
               </div>
-            }
-          >
-            <div
-              className="space-y-2 cursor-pointer"
-              onClick={() => { setDetailLocation(loc); setStaffSheetPage(1); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { setDetailLocation(loc); setStaffSheetPage(1); } }}
-              role="button"
-              tabIndex={0}
-            >
+            </div>
+
+            <div className="relative z-10 mt-4 space-y-2">
+              <h3 className="font-display text-base font-semibold text-brand-teal-deep transition-colors duration-300 group-hover:text-white">
+                {loc.name}
+              </h3>
               {loc.address && (
-                <p className="text-xs text-landing-steel truncate">{loc.address}</p>
+                <p className="truncate text-sm text-landing-steel transition-colors duration-300 group-hover:text-white/65">{loc.address}</p>
               )}
-              <div className="flex items-center gap-1.5 text-xs text-landing-steel">
-                <GlobeIcon className="size-3" />
+              <div className="flex items-center gap-1.5 text-xs text-landing-steel transition-colors duration-300 group-hover:text-white/65">
+                <GlobeIcon className="size-3.5" />
                 {loc.ianaTimezone}
               </div>
+            </div>
+
+            <div className="relative z-10 mt-4 border-t border-landing-hairline/70 pt-3 transition-colors duration-300 group-hover:border-white/10">
               <Badge variant={loc.isActive ? 'default' : 'secondary'} className="text-xs">
                 {loc.isActive ? 'Active' : 'Inactive'}
               </Badge>
             </div>
-          </DashboardCard>
+          </div>
         ))}
       </div>
       <PaginationControls currentPage={locPage} totalPages={locTotalPages} onPageChange={setLocPage} />
@@ -358,7 +378,7 @@ export function LocationsClient() {
                   {locationManagers.map((m) => (
                     <li
                       key={m.id}
-                      className="flex items-center justify-between rounded-xl border border-landing-hairline bg-landing-surface/50 px-4 py-3 transition-colors hover:border-brand-green/20 hover:bg-brand-green/[0.03]"
+                      className="flex items-center justify-between rounded-xl border border-landing-hairline bg-landing-surface/50 px-4 py-3 transition-colors hover:border-brand-green/20 hover:bg-brand-green/3"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-brand-teal-deep">
@@ -402,7 +422,7 @@ export function LocationsClient() {
                     {pagedSheetStaff.map((s) => (
                       <li
                         key={s.id}
-                        className="flex items-center gap-3 rounded-xl border border-landing-hairline bg-landing-surface/50 px-4 py-3 transition-colors hover:border-brand-green/20 hover:bg-brand-green/[0.03]"
+                        className="flex items-center gap-3 rounded-xl border border-landing-hairline bg-landing-surface/50 px-4 py-3 transition-colors hover:border-brand-green/20 hover:bg-brand-green/3"
                       >
                         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-green/15 text-xs font-semibold text-brand-green-dark">
                           {s.firstName[0]}
@@ -500,20 +520,27 @@ export function LocationsClient() {
       </FormSheet>
 
       {/* Delete confirm */}
-      <FormSheet
-        open={!!deleteConfirm}
-        onOpenChange={(open) => !open && setDeleteConfirm(null)}
-        title="Delete location?"
-        description={`This will permanently delete ${deleteConfirm?.name}. This cannot be undone.`}
-        footer={
-          <>
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete location?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete <span className="font-semibold text-foreground">{deleteConfirm?.name}</span>. All associated certifications and manager assignments will be removed. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={onDelete} disabled={actioning}>Delete</Button>
-          </>
-        }
-      >
-        <></>
-      </FormSheet>
+            <Button
+              variant="destructive"
+              onClick={onDelete}
+              disabled={actioning}
+              className="hover:bg-red-600"
+            >
+              {actioning ? 'Deleting…' : 'Delete location'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Manager */}
       <FormSheet

@@ -37,9 +37,10 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-brand-teal-deep/40 duration-300 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 z-50 bg-brand-teal-deep/40 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className,
       )}
+      style={{ animationDuration: "350ms", animationTimingFunction: "cubic-bezier(0.32,0.72,0,1)" }}
       {...props}
     />
   )
@@ -61,8 +62,9 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={side}
+        style={{ animationDuration: "400ms", animationTimingFunction: "cubic-bezier(0.32,0.72,0,1)" }}
         className={cn(
-          "fixed z-50 flex flex-col gap-4 border-landing-hairline bg-white bg-clip-padding text-sm font-display shadow-[0_16px_48px_-8px_rgba(0,30,43,0.18)] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "fixed z-50 flex flex-col gap-4 border-landing-hairline bg-white bg-clip-padding text-sm font-display shadow-[0_16px_48px_-8px_rgba(0,30,43,0.18)]",
           "data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t",
           "data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-full data-[side=left]:border-r sm:max-w-lg",
           "data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-full data-[side=right]:border-l",
