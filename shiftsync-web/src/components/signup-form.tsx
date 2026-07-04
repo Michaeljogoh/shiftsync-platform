@@ -8,14 +8,21 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import type { SignupInput } from '@/lib/validations/auth';
+import { PasswordInput } from '@/components/ui/password-input';
 import { cn } from '@/lib/utils';
+
+interface SignupFields {
+  firstName: string;
+  lastName: string;
+  organizationName: string;
+  email: string;
+  password: string;
+}
 
 export interface SignupFormProps {
   className?: string;
@@ -31,31 +38,19 @@ export function SignupForm({
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    setError,
-  } = useForm<SignupInput>({
+  } = useForm<SignupFields>({
     defaultValues: {
       firstName: '',
       lastName: '',
+      organizationName: '',
       email: '',
       password: '',
-      confirmPassword: '',
-      organizationName: '',
     },
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   });
 
-  async function onSubmit(data: SignupInput) {
-    if (data.password !== data.confirmPassword) {
-      setError('confirmPassword', {
-        type: 'manual',
-        message: 'Passwords do not match',
-      });
-      return;
-    }
-
-    // Self-service registration is admin-provisioned in ShiftSync.
-    // Store intent locally and guide users to sign in once provisioned.
+  async function onSubmit(data: SignupFields) {
     try {
       sessionStorage.setItem(
         'shiftsync_signup_intent',
@@ -68,7 +63,7 @@ export function SignupForm({
         }),
       );
     } catch {
-      // sessionStorage may be unavailable; continue with UX flow
+      // sessionStorage may be unavailable
     }
 
     toast.success('Request received', {
@@ -85,8 +80,7 @@ export function SignupForm({
           Create your account
         </h1>
         <p className="text-sm leading-relaxed text-landing-steel">
-          Set up access for your team. Workspace admins approve new members before
-          they can sign in.
+          Get started with ShiftSync.
         </p>
       </div>
 
@@ -114,7 +108,6 @@ export function SignupForm({
                 className="h-11 rounded-lg border-landing-hairline bg-white px-3.5 text-base focus-visible:border-brand-green focus-visible:ring-brand-green/25 md:text-sm"
                 {...register('firstName', {
                   required: 'First name is required',
-                  maxLength: { value: 100, message: 'Max 100 characters' },
                 })}
               />
               <FieldError errors={[errors.firstName]} />
@@ -132,7 +125,6 @@ export function SignupForm({
                 className="h-11 rounded-lg border-landing-hairline bg-white px-3.5 text-base focus-visible:border-brand-green focus-visible:ring-brand-green/25 md:text-sm"
                 {...register('lastName', {
                   required: 'Last name is required',
-                  maxLength: { value: 100, message: 'Max 100 characters' },
                 })}
               />
               <FieldError errors={[errors.lastName]} />
@@ -150,13 +142,9 @@ export function SignupForm({
               aria-invalid={!!errors.organizationName}
               className="h-11 rounded-lg border-landing-hairline bg-white px-3.5 text-base focus-visible:border-brand-green focus-visible:ring-brand-green/25 md:text-sm"
               {...register('organizationName', {
-                required: 'Organization name is required',
-                maxLength: { value: 120, message: 'Max 120 characters' },
+                required: 'Organization is required',
               })}
             />
-            <FieldDescription className="text-landing-muted">
-              The restaurant group or company you belong to
-            </FieldDescription>
             <FieldError errors={[errors.organizationName]} />
           </Field>
 
@@ -186,9 +174,8 @@ export function SignupForm({
             <FieldLabel htmlFor="password" className="text-landing-ink">
               Password
             </FieldLabel>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="new-password"
               aria-invalid={!!errors.password}
               className="h-11 rounded-lg border-landing-hairline bg-white px-3.5 text-base focus-visible:border-brand-green focus-visible:ring-brand-green/25 md:text-sm"
@@ -203,23 +190,6 @@ export function SignupForm({
             <FieldError errors={[errors.password]} />
           </Field>
 
-          <Field data-invalid={!!errors.confirmPassword}>
-            <FieldLabel htmlFor="confirmPassword" className="text-landing-ink">
-              Confirm password
-            </FieldLabel>
-            <Input
-              id="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              aria-invalid={!!errors.confirmPassword}
-              className="h-11 rounded-lg border-landing-hairline bg-white px-3.5 text-base focus-visible:border-brand-green focus-visible:ring-brand-green/25 md:text-sm"
-              {...register('confirmPassword', {
-                required: 'Please confirm your password',
-              })}
-            />
-            <FieldError errors={[errors.confirmPassword]} />
-          </Field>
-
           <Button
             type="submit"
             disabled={isSubmitting}
@@ -230,19 +200,6 @@ export function SignupForm({
         </FieldGroup>
       </form>
 
-      <div className="rounded-lg border border-landing-hairline bg-landing-surface px-4 py-3">
-        <p className="text-xs leading-relaxed text-landing-steel">
-          <span className="font-medium text-landing-ink">Demo access:</span> use{' '}
-          <span className="font-mono text-[11px] text-brand-green-dark">
-            admin@coastaleats.com
-          </span>{' '}
-          /{' '}
-          <span className="font-mono text-[11px] text-brand-green-dark">
-            password123
-          </span>{' '}
-          to explore the dashboard after signing in.
-        </p>
-      </div>
 
       <p className="text-center text-sm text-landing-steel">
         Already have an account?{' '}

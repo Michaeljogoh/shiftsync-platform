@@ -8,14 +8,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { apiClient } from '@/lib/api/client/client';
 import { RoleGate } from '@/components/shared/RoleGate';
 import { FullPageError } from '@/components/shared/FullPageError';
 import { PaginationControls, usePagination } from '@/components/shared/PaginationControls';
 import { PageHeader } from '@/components/dashboard/page-header';
-import { DashboardCard } from '@/components/dashboard/dashboard-card';
 import { FormSheet } from '@/components/dashboard/form-sheet';
-import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { PencilIcon, PlusIcon, Trash2Icon, WrenchIcon } from 'lucide-react';
 
 const primaryBtnClass =
   'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
@@ -126,31 +133,43 @@ export function SkillsClient() {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {pagedSkills.map((skill) => (
-          <DashboardCard
+          <div
             key={skill.id}
-            title={skill.name}
-            description={skill.description || 'No description'}
-            hoverable
-            action={
+            className="group relative flex flex-col overflow-hidden rounded-xl border border-landing-hairline bg-white p-5 shadow-[0_1px_3px_rgba(0,30,43,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:border-white/10 hover:shadow-[0_12px_28px_-6px_rgba(0,30,43,0.28)]"
+          >
+            <div className="pointer-events-none absolute inset-0 bg-brand-teal-deep opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden />
+            <div className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-brand-green/20 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" aria-hidden />
+            <div className="pointer-events-none absolute -bottom-12 left-1/4 size-40 rounded-full bg-brand-teal/40 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" aria-hidden />
+
+            <div className="relative z-10 flex items-start justify-between gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-green/10 text-brand-green-dark transition-colors duration-300 group-hover:bg-white/15 group-hover:text-brand-green">
+                <WrenchIcon className="size-5" strokeWidth={2} />
+              </div>
               <RoleGate role={['admin']}>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" className="size-8 p-0 hover:bg-brand-green/10" onClick={() => openEdit(skill)}>
+                <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Button variant="ghost" size="sm" className="size-8 p-0 hover:bg-white/15 group-hover:text-white" onClick={() => openEdit(skill)}>
                     <PencilIcon className="size-3.5" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="size-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeleteConfirm(skill)}>
+                  <Button variant="ghost" size="sm" className="size-8 p-0 text-destructive hover:bg-red-500/20 group-hover:text-red-400" onClick={() => setDeleteConfirm(skill)}>
                     <Trash2Icon className="size-3.5" />
                   </Button>
                 </div>
               </RoleGate>
-            }
-          >
-            <span className="sr-only">{skill.name}</span>
-          </DashboardCard>
+            </div>
+            <div className="relative z-10 mt-4">
+              <h3 className="font-display text-base font-semibold text-brand-teal-deep transition-colors duration-300 group-hover:text-white">
+                {skill.name}
+              </h3>
+              <p className="mt-1 text-sm text-landing-steel line-clamp-2 transition-colors duration-300 group-hover:text-white/65">
+                {skill.description || 'No description provided'}
+              </p>
+            </div>
+          </div>
         ))}
         {skills.length === 0 && (
-          <div className="col-span-full rounded-xl border border-dashed border-landing-hairline bg-white py-12 text-center text-sm text-landing-steel transition-colors hover:border-brand-green/30 hover:bg-brand-green/[0.02]">
+          <div className="col-span-full rounded-xl border border-dashed border-landing-hairline bg-white py-12 text-center text-sm text-landing-steel">
             No skills defined yet.
           </div>
         )}
@@ -208,24 +227,27 @@ export function SkillsClient() {
         </form>
       </FormSheet>
 
-      <FormSheet
-        open={!!deleteConfirm}
-        onOpenChange={(open) => !open && setDeleteConfirm(null)}
-        title="Delete skill?"
-        description={`This will permanently delete ${deleteConfirm?.name ?? 'this skill'}. Staff with this skill will lose it.`}
-        footer={
-          <>
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete skill?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete <span className="font-semibold text-foreground">{deleteConfirm?.name ?? 'this skill'}</span>. Staff with this skill will lose it. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={onDelete} disabled={actioning}>
+            <Button
+              variant="destructive"
+              onClick={onDelete}
+              disabled={actioning}
+              className="hover:bg-red-600"
+            >
               {actioning ? 'Deleting…' : 'Delete skill'}
             </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-landing-steel">
-          This action cannot be undone. Consider removing the skill from active schedules first.
-        </p>
-      </FormSheet>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

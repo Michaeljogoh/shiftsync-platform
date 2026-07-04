@@ -40,7 +40,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider>
       <SidebarProvider
-        className="dashboard min-h-svh font-display"
+        className="dashboard h-svh overflow-hidden font-display"
         style={
           {
             "--sidebar-width": "16rem",
@@ -51,9 +51,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <NotificationsStoreSync />
         <ConstraintFeedbackRoot />
         <AppSidebar />
-        <SidebarInset className="min-h-svh bg-landing-surface text-brand-teal-deep">
+        <SidebarInset className="flex min-w-0 flex-col overflow-hidden bg-landing-surface text-brand-teal-deep">
           <DashboardHeader pageTitle={pageTitle} />
-          <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
             {children}
           </div>
         </SidebarInset>
