@@ -3,6 +3,27 @@
 @source "../../src";
 
 @theme inline {
+  --color-brand-green: #00ed64;
+  --color-brand-green-dark: #00684a;
+  --color-brand-green-soft: #c3f0d2;
+  --color-brand-teal-deep: #001e2b;
+  --color-brand-teal: #003d4f;
+  --color-brand-teal-mid: #00684a;
+  --color-landing-ink: #001e2b;
+  --color-landing-slate: #3d4f5b;
+  --color-landing-steel: #5c6c7a;
+  --color-landing-stone: #7c8c9a;
+  --color-landing-muted: #a8b3bc;
+  --color-landing-surface: #f9fbfa;
+  --color-landing-surface-feature: #e3fcef;
+  --color-landing-hairline: #e1e5e8;
+  --color-landing-hairline-dark: #1c2d38;
+  --color-landing-accent-purple: #7b3ff2;
+  --color-landing-accent-orange: #fa6e39;
+  --color-landing-accent-pink: #f06bb8;
+  --color-landing-accent-blue: #3d4f9f;
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -62,19 +83,19 @@
     --border: oklch(0.92 0.004 286.32);
     --input: oklch(0.92 0.004 286.32);
     --ring: oklch(0.841 0.238 128.85);
-    --chart-1: oklch(0.871 0.15 154.449);
-    --chart-2: oklch(0.723 0.219 149.579);
-    --chart-3: oklch(0.627 0.194 149.214);
-    --chart-4: oklch(0.527 0.154 150.069);
-    --chart-5: oklch(0.448 0.119 151.328);
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.141 0.005 285.823);
-    --sidebar-primary: oklch(0.648 0.2 131.684);
-    --sidebar-primary-foreground: oklch(0.986 0.031 120.757);
-    --sidebar-accent: oklch(0.967 0.001 286.375);
-    --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-    --sidebar-border: oklch(0.92 0.004 286.32);
-    --sidebar-ring: oklch(0.841 0.238 128.85);
+    --chart-1: #00ed64;
+    --chart-2: #00684a;
+    --chart-3: #003d4f;
+    --chart-4: #fa6e39;
+    --chart-5: #7b3ff2;
+    --sidebar: #001e2b;
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #00ed64;
+    --sidebar-primary-foreground: #001e2b;
+    --sidebar-accent: #003d4f;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1c2d38;
+    --sidebar-ring: #00ed64;
   }
 
   .dark {
@@ -122,17 +143,72 @@
   html {
     @apply font-sans;
   }
+
+  .landing {
+    font-family: var(--font-display), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .landing .font-mono {
+    font-family: var(--font-mono), "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  .landing-card-hover {
+    transition:
+      background-color 200ms cubic-bezier(0.23, 1, 0.32, 1),
+      border-color 200ms cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1),
+      transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+      color 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .landing-location-card:hover {
+      background-color: #c3f0d2;
+      border-color: rgb(0 237 100 / 0.45);
+      box-shadow: 0 4px 12px rgb(0 30 43 / 0.08);
+      transform: translateY(-2px);
+    }
+
+    .landing-location-card:hover span {
+      color: #001e2b;
+    }
+
+    .landing-role-card:hover {
+      background-color: #003d4f;
+      border-color: rgb(0 237 100 / 0.5);
+      box-shadow: 0 4px 12px rgb(0 30 43 / 0.12);
+      transform: translateY(-2px);
+    }
+
+    .landing-role-card:hover .landing-role-card-icon {
+      color: #00ed64;
+    }
+
+    .landing-role-card:hover .landing-role-card-label {
+      color: #ffffff;
+    }
+  }
+
+  .landing-location-card:active,
+  .landing-role-card:active {
+    transform: scale(0.98);
+  }
+
+  .dashboard {
+    font-family: var(--font-display), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .dashboard .font-mono,
+  .dashboard [data-slot="input"] {
+    font-family: var(--font-mono), "SF Mono", Menlo, Consolas, monospace;
+  }
 }
 
-/* Sidebar nav links: default black/foreground, hover green (text/icon only) */
-[data-nav-link],
-[data-nav-link] svg,
-[data-nav-link] span.truncate {
-  color: var(--foreground);
-  transition: color 0.15s ease;
+/* Dashboard sidebar: let nav-main control link colors on dark sidebar */
+.dashboard [data-nav-link][class*="bg-brand-green"] {
+  color: #001e2b;
 }
-[data-nav-link]:hover,
-[data-nav-link]:hover svg,
-[data-nav-link]:hover span.truncate {
-  color: var(--primary);
+.dashboard [data-nav-link][class*="bg-brand-green"] svg,
+.dashboard [data-nav-link][class*="bg-brand-green"] span {
+  color: inherit;
 }

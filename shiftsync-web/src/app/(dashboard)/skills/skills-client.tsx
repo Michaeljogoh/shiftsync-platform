@@ -4,23 +4,21 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api/client/client';
 import { RoleGate } from '@/components/shared/RoleGate';
 import { FullPageError } from '@/components/shared/FullPageError';
 import { PaginationControls, usePagination } from '@/components/shared/PaginationControls';
-import { PencilIcon, PlusIcon, Trash2Icon, WrenchIcon } from 'lucide-react';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { DashboardCard } from '@/components/dashboard/dashboard-card';
+import { FormSheet } from '@/components/dashboard/form-sheet';
+import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+
+const primaryBtnClass =
+  'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
 
 interface Skill {
   id: string;
@@ -103,10 +101,8 @@ export function SkillsClient() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">Skills</h1>
-        </div>
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <PageHeader title="Skills" description="Define skills that can be assigned to staff members." />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
         </div>
@@ -117,107 +113,119 @@ export function SkillsClient() {
   if (isError) return <FullPageError message="Failed to load skills." onRetry={() => refetch()} />;
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <WrenchIcon className="size-5" /> Skills
-        </h1>
-        <RoleGate role={['admin']}>
-          <Button size="sm" className="min-h-[44px] sm:min-h-0" onClick={() => setCreateOpen(true)}>
-            <PlusIcon className="mr-1.5 size-4" /> Add skill
-          </Button>
-        </RoleGate>
-      </div>
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <PageHeader
+        title="Skills"
+        description="Define skills that can be assigned to staff members."
+        actions={
+          <RoleGate role={['admin']}>
+            <Button size="sm" className={`min-h-[44px] sm:min-h-0 ${primaryBtnClass}`} onClick={() => setCreateOpen(true)}>
+              <PlusIcon className="mr-1.5 size-4" /> Add skill
+            </Button>
+          </RoleGate>
+        }
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {pagedSkills.map((skill) => (
-          <div key={skill.id} className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
-            <div>
-              <Badge variant="secondary" className="mb-1">{skill.name}</Badge>
-              {skill.description && (
-                <p className="text-xs text-muted-foreground">{skill.description}</p>
-              )}
-            </div>
-            <RoleGate role={['admin']}>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(skill)}>
-                  <PencilIcon className="size-3.5" />
-                </Button>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => setDeleteConfirm(skill)}>
-                  <Trash2Icon className="size-3.5" />
-                </Button>
-              </div>
-            </RoleGate>
-          </div>
+          <DashboardCard
+            key={skill.id}
+            title={skill.name}
+            description={skill.description || 'No description'}
+            hoverable
+            action={
+              <RoleGate role={['admin']}>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" className="size-8 p-0 hover:bg-brand-green/10" onClick={() => openEdit(skill)}>
+                    <PencilIcon className="size-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="size-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeleteConfirm(skill)}>
+                    <Trash2Icon className="size-3.5" />
+                  </Button>
+                </div>
+              </RoleGate>
+            }
+          >
+            <span className="sr-only">{skill.name}</span>
+          </DashboardCard>
         ))}
         {skills.length === 0 && (
-          <div className="col-span-full py-12 text-center text-sm text-muted-foreground">No skills defined yet.</div>
+          <div className="col-span-full rounded-xl border border-dashed border-landing-hairline bg-white py-12 text-center text-sm text-landing-steel transition-colors hover:border-brand-green/30 hover:bg-brand-green/[0.02]">
+            No skills defined yet.
+          </div>
         )}
       </div>
       <PaginationControls currentPage={skillsPage} totalPages={skillsTotalPages} onPageChange={setSkillsPage} />
 
-      {/* Create */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add skill</DialogTitle>
-            <DialogDescription>Create a new skill that can be assigned to staff.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onCreate)} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Skill name *</label>
-              <Input {...register('name', { required: true })} placeholder="e.g. bartender" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Description</label>
-              <Input {...register('description')} placeholder="Brief description" />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting}>Create</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <FormSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="Add skill"
+        description="Create a new skill that can be assigned to staff."
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button type="submit" form="create-skill-form" disabled={isSubmitting} className={primaryBtnClass}>
+              {isSubmitting ? 'Creating…' : 'Create skill'}
+            </Button>
+          </>
+        }
+      >
+        <form id="create-skill-form" onSubmit={handleSubmit(onCreate)} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-brand-teal-deep">Skill name *</Label>
+            <Input {...register('name', { required: true })} placeholder="e.g. Bartender" className="h-11 border-landing-hairline" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-brand-teal-deep">Description</Label>
+            <Input {...register('description')} placeholder="Brief description" className="h-11 border-landing-hairline" />
+          </div>
+        </form>
+      </FormSheet>
 
-      {/* Edit */}
-      <Dialog open={!!editSkill} onOpenChange={(open) => !open && setEditSkill(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit skill</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEditSubmit(onEdit)} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Skill name *</label>
-              <Input {...regEdit('name', { required: true })} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Description</label>
-              <Input {...regEdit('description')} />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditSkill(null)}>Cancel</Button>
-              <Button type="submit" disabled={editSubmitting}>Save</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <FormSheet
+        open={!!editSkill}
+        onOpenChange={(open) => !open && setEditSkill(null)}
+        title="Edit skill"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setEditSkill(null)}>Cancel</Button>
+            <Button type="submit" form="edit-skill-form" disabled={editSubmitting} className={primaryBtnClass}>
+              {editSubmitting ? 'Saving…' : 'Save changes'}
+            </Button>
+          </>
+        }
+      >
+        <form id="edit-skill-form" onSubmit={handleEditSubmit(onEdit)} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-brand-teal-deep">Skill name *</Label>
+            <Input {...regEdit('name', { required: true })} className="h-11 border-landing-hairline" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-brand-teal-deep">Description</Label>
+            <Input {...regEdit('description')} className="h-11 border-landing-hairline" />
+          </div>
+        </form>
+      </FormSheet>
 
-      {/* Delete */}
-      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete skill?</DialogTitle>
-            <DialogDescription>
-              This will permanently delete <strong>{deleteConfirm?.name}</strong>. Staff with this skill will lose it.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <FormSheet
+        open={!!deleteConfirm}
+        onOpenChange={(open) => !open && setDeleteConfirm(null)}
+        title="Delete skill?"
+        description={`This will permanently delete ${deleteConfirm?.name ?? 'this skill'}. Staff with this skill will lose it.`}
+        footer={
+          <>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={onDelete} disabled={actioning}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button variant="destructive" onClick={onDelete} disabled={actioning}>
+              {actioning ? 'Deleting…' : 'Delete skill'}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-landing-steel">
+          This action cannot be undone. Consider removing the skill from active schedules first.
+        </p>
+      </FormSheet>
     </div>
   );
 }

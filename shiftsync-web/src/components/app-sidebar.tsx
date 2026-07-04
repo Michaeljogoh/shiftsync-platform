@@ -12,12 +12,11 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { SocketStatus } from "@/components/shared/SocketStatus"
 import { usePathname } from "next/navigation"
 import { useNotificationsStore } from "@/lib/stores/notifications.store"
 import { useAuthStore } from "@/lib/stores/auth.store"
 import {
-  GalleryVerticalEndIcon,
+  CalendarDaysIcon,
   CalendarIcon,
   UsersIcon,
   ArrowLeftRightIcon,
@@ -26,19 +25,21 @@ import {
   BellIcon,
   FileTextIcon,
   MapPinIcon,
+  LayoutDashboardIcon,
+  WrenchIcon,
 } from "lucide-react"
 
 const navMainItems = [
-  { title: "Dashboard", url: "/dashboard", icon: <GalleryVerticalEndIcon className="size-4" />, items: [{ title: "Overview", url: "/" }] },
-  { title: "Schedule", url: "/schedule", icon: <CalendarIcon className="size-4" />, items: [{ title: "View", url: "/schedule" }] },
-  { title: "Staff", url: "/staff", icon: <UsersIcon className="size-4" />, items: [{ title: "View", url: "/staff" }] },
-  { title: "Swap & Drop", url: "/swaps", icon: <ArrowLeftRightIcon className="size-4" />, items: [{ title: "View", url: "/swaps" }] },
-  { title: "Analytics", url: "/analytics", icon: <BarChart3Icon className="size-4" />, items: [{ title: "View", url: "/analytics" }] },
-  { title: "On-Duty", url: "/on-duty", icon: <ClockIcon className="size-4" />, items: [{ title: "View", url: "/on-duty" }] },
-  { title: "Notifications", url: "/notifications", icon: <BellIcon className="size-4" />, items: [{ title: "View", url: "/notifications" }] },
-  { title: "Audit Log", url: "/audit", icon: <FileTextIcon className="size-4" />, items: [{ title: "View", url: "/audit" }] },
-  { title: "Locations", url: "/locations", icon: <MapPinIcon className="size-4" />, items: [{ title: "View", url: "/locations" }] },
-  { title: "Skills", url: "/skills", icon: <BarChart3Icon className="size-4" />, items: [{ title: "View", url: "/skills" }] },
+  { title: "Overview", url: "/dashboard", icon: <LayoutDashboardIcon className="size-4" /> },
+  { title: "Schedule", url: "/schedule", icon: <CalendarIcon className="size-4" /> },
+  { title: "Staff", url: "/staff", icon: <UsersIcon className="size-4" /> },
+  { title: "Swap & Drop", url: "/swaps", icon: <ArrowLeftRightIcon className="size-4" /> },
+  { title: "Analytics", url: "/analytics", icon: <BarChart3Icon className="size-4" /> },
+  { title: "On-Duty", url: "/on-duty", icon: <ClockIcon className="size-4" /> },
+  { title: "Notifications", url: "/notifications", icon: <BellIcon className="size-4" /> },
+  { title: "Audit Log", url: "/audit", icon: <FileTextIcon className="size-4" /> },
+  { title: "Locations", url: "/locations", icon: <MapPinIcon className="size-4" /> },
+  { title: "Skills", url: "/skills", icon: <WrenchIcon className="size-4" /> },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -58,18 +59,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     isActive: pathname === item.url || pathname?.startsWith(item.url + "/"),
     badgeContent: item.title === "Notifications" && unreadCount > 0 ? unreadCount : undefined,
   }))
+
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <TeamSwitcher teams={[{ name: "ShiftSync", logo: <GalleryVerticalEndIcon />, plan: "Platform" }]} />
+      <SidebarHeader className="border-b border-sidebar-border/50 px-3 py-4">
+        <TeamSwitcher
+          teams={[
+            {
+              name: "ShiftSync",
+              logo: <CalendarDaysIcon className="size-4" strokeWidth={2.25} />,
+              plan: "Workforce Platform",
+            },
+          ]}
+        />
       </SidebarHeader>
-      <SidebarContent className="text-[ oklch(0.141 0.005 285.823) ]">
+      <SidebarContent className="px-2 py-4">
         <NavMain items={navMainWithActive} />
       </SidebarContent>
-      <SidebarFooter>
-        <div className="px-2 py-1.5">
-          <SocketStatus />
-        </div>
+      <SidebarFooter className="border-t border-sidebar-border/50 px-2 py-3">
         <NavUser />
       </SidebarFooter>
       <SidebarRail />

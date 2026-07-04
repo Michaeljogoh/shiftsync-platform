@@ -5,7 +5,7 @@ Next.js (App Router) frontend for the ShiftSync platform.
 ## Prerequisites
 
 - Node.js 18+ (recommended)
-- npm 9+
+- pnpm 9+ (`corepack enable` recommended)
 - `shiftsync-api` running (or another compatible backend)
 
 ## Environment variables
@@ -32,13 +32,13 @@ Notes:
 
 ```bash
 cd shiftsync-web
-npm install
+pnpm install
 ```
 
 ## Run (development)
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Then open `http://localhost:3000`.
@@ -46,14 +46,14 @@ Then open `http://localhost:3000`.
 ## Build / start (production)
 
 ```bash
-npm run build
-npm run start
+pnpm build
+pnpm start
 ```
 
 ## Lint
 
 ```bash
-npm run lint
+pnpm lint
 ```
 
 ## Core features (UI)

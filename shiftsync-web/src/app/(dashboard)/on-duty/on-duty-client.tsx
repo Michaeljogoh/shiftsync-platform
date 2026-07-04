@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useCallback, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api/client/client';
 import { useOnDutyStore } from '@/lib/stores/on-duty.store';
 import { PaginationControls, usePagination } from '@/components/shared/PaginationControls';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { DashboardCard } from '@/components/dashboard/dashboard-card';
 import type { LocationSummary } from '@/lib/api/server/locations';
 import type { OnDutyPayload } from '@/lib/stores/on-duty.store';
 import { ClockIcon, UsersIcon } from 'lucide-react';
@@ -42,7 +43,7 @@ function LocationClock({ ianaTimezone }: { ianaTimezone: string }) {
     return () => clearInterval(id);
   }, [ianaTimezone]);
 
-  return <span className="font-mono text-foreground">{time}</span>;
+  return <span className="font-mono text-brand-teal-deep">{time}</span>;
 }
 
 interface OnDutyClientProps {
@@ -107,9 +108,9 @@ export function OnDutyClient({ locations }: OnDutyClientProps) {
 
   if (locations.length === 0) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-lg font-semibold text-foreground">On-Duty Dashboard</h1>
-        <p className="text-sm text-muted-foreground">No locations available.</p>
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <PageHeader title="On-Duty Dashboard" description="See who is currently on shift at each location." />
+        <p className="text-sm text-landing-steel">No locations available.</p>
       </div>
     );
   }
@@ -117,16 +118,18 @@ export function OnDutyClient({ locations }: OnDutyClientProps) {
   const totalOnDuty = Object.values(data).reduce((sum, p) => sum + (p?.onDuty?.length ?? 0), 0);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-foreground">On-Duty Dashboard</h1>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <UsersIcon className="size-4" />
-          <span>{totalOnDuty} on duty now</span>
-          <span className="inline-flex size-2 rounded-full bg-green-500 animate-pulse" />
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">Real-time — updates every minute via WebSocket. Times shown in each location&apos;s timezone.</p>
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <PageHeader
+        title="On-Duty Dashboard"
+        description="Real-time — updates every minute via WebSocket. Times shown in each location's timezone."
+        actions={
+          <div className="flex items-center gap-2 text-sm text-landing-steel">
+            <UsersIcon className="size-4" />
+            <span>{totalOnDuty} on duty now</span>
+            <span className="inline-flex size-2 rounded-full bg-brand-green animate-pulse" />
+          </div>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {pagedLocations.map((loc) => {
@@ -141,48 +144,48 @@ export function OnDutyClient({ locations }: OnDutyClientProps) {
           }));
 
           return (
-            <Card key={loc.id} className="border-border bg-card">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-base text-foreground">{loc.name}</CardTitle>
-                  <Badge variant={count > 0 ? 'default' : 'secondary'} className="text-xs">
-                    {count} on duty
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <ClockIcon className="size-3.5" />
-                  <LocationClock ianaTimezone={loc.ianaTimezone} />
-                  <span className="text-xs">({loc.ianaTimezone.split('/')[1]?.replace('_', ' ')})</span>
-                </div>
-              </CardHeader>
-              <CardContent>
+            <DashboardCard
+              key={loc.id}
+              title={loc.name}
+              action={
+                <Badge variant={count > 0 ? 'default' : 'secondary'} className="text-xs">
+                  {count} on duty
+                </Badge>
+              }
+            >
+              <div className="flex items-center gap-1.5 text-sm text-landing-steel">
+                <ClockIcon className="size-3.5" />
+                <LocationClock ianaTimezone={loc.ianaTimezone} />
+                <span className="text-xs">({loc.ianaTimezone.split('/')[1]?.replace('_', ' ')})</span>
+              </div>
+              <div className="mt-3">
                 {loading ? (
                   <div className="space-y-2">
                     {[1, 2].map((i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)}
                   </div>
                 ) : enriched.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-muted-foreground">No one currently on shift</p>
+                  <p className="py-4 text-center text-sm text-landing-steel">No one currently on shift</p>
                 ) : (
                   <ul className="space-y-2">
                     {enriched.map((e) => (
-                      <li key={`${e.userId}-${e.shiftId}`} className="flex items-center gap-2.5 rounded-lg bg-muted px-2.5 py-2">
+                      <li key={`${e.userId}-${e.shiftId}`} className="flex items-center gap-2.5 rounded-lg bg-landing-surface px-2.5 py-2">
                         <Avatar className="h-7 w-7">
-                          <AvatarFallback className="text-xs bg-primary/10 text-primary font-medium">
+                          <AvatarFallback className="text-xs bg-brand-green/15 text-brand-teal-deep font-medium">
                             {e.initials}
                           </AvatarFallback>
                         </Avatar>
-                        <p className="text-sm text-foreground font-medium">{e.name}</p>
+                        <p className="text-sm text-brand-teal-deep font-medium">{e.name}</p>
                       </li>
                     ))}
                   </ul>
                 )}
                 {payload?.at && !loading && (
-                  <p className="mt-2 text-[10px] text-muted-foreground">
+                  <p className="mt-2 text-[10px] text-landing-muted">
                     Last sync: {new Date(payload.at).toLocaleTimeString()}
                   </p>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </DashboardCard>
           );
         })}
       </div>

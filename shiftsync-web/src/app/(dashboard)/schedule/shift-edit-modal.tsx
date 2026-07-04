@@ -4,14 +4,9 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { FormSheet } from "@/components/dashboard/form-sheet";
+import { FormSelect } from "@/components/dashboard/filter-select";
+import { Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -86,6 +81,7 @@ export function ShiftEditModal({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { isSubmitting },
   } = useForm<ShiftEditForm>();
 
@@ -166,140 +162,134 @@ export function ShiftEditModal({
 
   return (
     <>
-      <Dialog
+      <FormSheet
         open={open && !deleteConfirm && !unpublishConfirm}
         onOpenChange={onOpenChange}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              Edit shift
-              <Badge
-                variant={shift.status === "published" ? "default" : "secondary"}
+        title="Edit shift"
+        description={`${shift.location?.name ?? ''} · Times are interpreted in ${tz}`}
+        footer={
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-2">
+              <PermissionGate require="shifts:delete">
+                {shift.status === "draft" && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setDeleteConfirm(true)}
+                    className="gap-1"
+                  >
+                    <Trash2Icon className="size-3.5" /> Delete
+                  </Button>
+                )}
+              </PermissionGate>
+              <PermissionGate require="shifts:publish">
+                {shift.status === "published" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUnpublishConfirm(true)}
+                    className="gap-1"
+                  >
+                    <EyeOffIcon className="size-3.5" /> Unpublish
+                  </Button>
+                )}
+              </PermissionGate>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
               >
-                {shift.status}
-              </Badge>
-            </DialogTitle>
-            <DialogDescription>
-              {shift.location?.name} · Times are interpreted in{" "}
-              <strong>{tz}</strong>
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSave)} className="space-y-4">
+                Cancel
+              </Button>
+              <Button type="submit" form="shift-edit-form" disabled={isSubmitting}>
+                Save changes
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        <form id="shift-edit-form" onSubmit={handleSubmit(onSave)} className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={shift.status === "published" ? "default" : "secondary"}
+            >
+              {shift.status}
+            </Badge>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Title</label>
+            <Input
+              {...register("title")}
+              placeholder="e.g. Morning service"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Title</label>
+              <label className="text-sm font-medium">Start *</label>
               <Input
-                {...register("title")}
-                placeholder="e.g. Morning service"
+                type="datetime-local"
+                {...register("startAt", { required: true })}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Start *</label>
-                <Input
-                  type="datetime-local"
-                  {...register("startAt", { required: true })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">End *</label>
-                <Input
-                  type="datetime-local"
-                  {...register("endAt", { required: true })}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">End *</label>
+              <Input
+                type="datetime-local"
+                {...register("endAt", { required: true })}
+              />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Headcount</label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={20}
-                  {...register("headcountNeeded")}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Edit cutoff (hrs)</label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={168}
-                  {...register("editCutoffHours")}
-                />
-              </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Headcount</label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                {...register("headcountNeeded")}
+              />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Required skill</label>
-              <select
-                className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
-                {...register("requiredSkillId")}
-              >
-                <option value="">— No specific skill —</option>
-                {resolvedSkills.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+              <label className="text-sm font-medium">Edit cutoff (hrs)</label>
+              <Input
+                type="number"
+                min={0}
+                max={168}
+                {...register("editCutoffHours")}
+              />
             </div>
-            <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex gap-2">
-                <PermissionGate require="shifts:delete">
-                  {shift.status === "draft" && (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDeleteConfirm(true)}
-                      className="gap-1"
-                    >
-                      <Trash2Icon className="size-3.5" /> Delete
-                    </Button>
-                  )}
-                </PermissionGate>
-                <PermissionGate require="shifts:publish">
-                  {shift.status === "published" && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setUnpublishConfirm(true)}
-                      className="gap-1"
-                    >
-                      <EyeOffIcon className="size-3.5" /> Unpublish
-                    </Button>
-                  )}
-                </PermissionGate>
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  Save changes
-                </Button>
-              </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Required skill</label>
+            <Controller
+              control={control}
+              name="requiredSkillId"
+              render={({ field }) => (
+                <FormSelect
+                  id="requiredSkillId"
+                  value={field.value ?? ""}
+                  onValueChange={field.onChange}
+                  placeholder="— No specific skill —"
+                  options={resolvedSkills.map((s) => ({ value: s.id, label: s.name }))}
+                />
+              )}
+            />
+          </div>
+        </form>
+      </FormSheet>
 
       {/* Delete confirm */}
-      <Dialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete shift?</DialogTitle>
-            <DialogDescription>
-              Permanently delete <strong>{shift.title ?? "this shift"}</strong>.
-              Only draft shifts can be deleted. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <FormSheet
+        open={deleteConfirm}
+        onOpenChange={setDeleteConfirm}
+        title="Delete shift?"
+        description={`Permanently delete ${shift.title ?? "this shift"}. Only draft shifts can be deleted. This cannot be undone.`}
+        footer={
+          <>
             <Button variant="outline" onClick={() => setDeleteConfirm(false)}>
               Cancel
             </Button>
@@ -310,22 +300,20 @@ export function ShiftEditModal({
             >
               Delete shift
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <></>
+      </FormSheet>
 
       {/* Unpublish confirm */}
-      <Dialog open={unpublishConfirm} onOpenChange={setUnpublishConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Unpublish shift?</DialogTitle>
-            <DialogDescription>
-              Move <strong>{shift.title ?? "this shift"}</strong> back to draft.
-              Pending swap requests for assignments will be cancelled. Staff
-              will be notified.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <FormSheet
+        open={unpublishConfirm}
+        onOpenChange={setUnpublishConfirm}
+        title="Unpublish shift?"
+        description={`Move ${shift.title ?? "this shift"} back to draft. Pending swap requests for assignments will be cancelled. Staff will be notified.`}
+        footer={
+          <>
             <Button
               variant="outline"
               onClick={() => setUnpublishConfirm(false)}
@@ -339,9 +327,11 @@ export function ShiftEditModal({
             >
               Unpublish
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <></>
+      </FormSheet>
     </>
   );
 }

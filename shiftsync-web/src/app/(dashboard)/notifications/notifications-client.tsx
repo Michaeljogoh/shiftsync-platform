@@ -12,6 +12,11 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { DashboardCard } from '@/components/dashboard/dashboard-card';
+
+const primaryBtnClass =
+  'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
 
 
 const PAGE_SIZE = 25;
@@ -95,8 +100,8 @@ export function NotificationsClient() {
 
   if (isInitialLoading) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-lg font-semibold text-foreground">Notifications</h1>
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <PageHeader title="Notifications" description="Stay up to date on schedule changes and team activity." />
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} className="h-20 w-full rounded-lg" />
@@ -108,8 +113,8 @@ export function NotificationsClient() {
 
   if (listError) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-lg font-semibold text-foreground">Notifications</h1>
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <PageHeader title="Notifications" description="Stay up to date on schedule changes and team activity." />
         <FullPageError
           message="Failed to load notifications. Please try again."
           onRetry={() => queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all() })}
@@ -121,35 +126,33 @@ export function NotificationsClient() {
   const showUnreadBadge = !countLoading && (unreadCount ?? 0) > 0;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-foreground">Notifications</h1>
-        <div className="flex items-center gap-2">
-          {showUnreadBadge && (
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <PageHeader
+        title="Notifications"
+        description="Stay up to date on schedule changes and team activity."
+        actions={
+          showUnreadBadge ? (
             <>
-              <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+              <span className="rounded-full bg-brand-green px-2 py-0.5 text-xs font-semibold text-brand-teal-deep">
                 {unreadCount} unread
               </span>
               <Button size="sm" variant="outline" className="min-h-[44px]" onClick={handleMarkAllRead}>
                 Mark all read
               </Button>
             </>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {notifications.length === 0 ? (
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-foreground">You&apos;re all caught up ✓</CardTitle>
-            <CardDescription>No new notifications. Check back later.</CardDescription>
-          </CardHeader>
-        </Card>
+        <DashboardCard title="You're all caught up ✓" description="No new notifications. Check back later.">
+          <span className="sr-only">No notifications</span>
+        </DashboardCard>
       ) : (
         <>
           {groups.today.length > 0 && (
             <section>
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground0">Today</h2>
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-landing-steel">Today</h2>
               <ul className="space-y-2">
                 {groups.today.map((n) => (
                   <NotificationCard key={n.id} notification={n} onUpdate={() => queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all() })} />
@@ -159,7 +162,7 @@ export function NotificationsClient() {
           )}
           {groups.thisWeek.length > 0 && (
             <section>
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground0">This week</h2>
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-landing-steel">This week</h2>
               <ul className="space-y-2">
                 {groups.thisWeek.map((n) => (
                   <NotificationCard key={n.id} notification={n} onUpdate={() => queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all() })} />
@@ -169,7 +172,7 @@ export function NotificationsClient() {
           )}
           {groups.older.length > 0 && (
             <section>
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground0">Older</h2>
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-landing-steel">Older</h2>
               <ul className="space-y-2">
                 {groups.older.map((n) => (
                   <NotificationCard key={n.id} notification={n} onUpdate={() => queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all() })} />
@@ -218,22 +221,22 @@ function NotificationCard({
 
   const content = (
     <Card
-      className={`cursor-pointer border-border transition-colors hover:bg-muted ${
-        n.isRead ? 'bg-muted/30' : 'bg-muted/50'
+      className={`cursor-pointer border-landing-hairline bg-white transition-colors hover:bg-brand-green/[0.03] ${
+        n.isRead ? 'opacity-80' : 'shadow-[0_1px_2px_rgba(0,30,43,0.04)]'
       }`}
       onClick={handleClick}
     >
         <CardHeader className="py-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
-                {!n.isRead && <span className="size-2 shrink-0 rounded-full bg-primary" />}
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-brand-teal-deep">
+                {!n.isRead && <span className="size-2 shrink-0 rounded-full bg-brand-green" />}
                 {n.title}
               </CardTitle>
               {n.body && (
-                <CardDescription className="mt-1 text-xs text-muted-foreground">{n.body}</CardDescription>
+                <CardDescription className="mt-1 text-xs text-landing-steel">{n.body}</CardDescription>
               )}
-              <p className="mt-1 text-xs text-foreground0">
+              <p className="mt-1 text-xs text-landing-muted">
                 {new Date(n.createdAt).toLocaleString()}
               </p>
             </div>

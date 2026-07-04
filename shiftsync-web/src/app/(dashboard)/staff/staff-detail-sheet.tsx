@@ -4,26 +4,16 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { DetailSheet, FormSheet } from '@/components/dashboard/form-sheet';
+import { FormSelect } from '@/components/dashboard/filter-select';
+import { SheetField, SheetSection, sheetTabsClass } from '@/components/dashboard/sheet-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { apiClient } from '@/lib/api/client/client';
 import { queryKeys } from '@/lib/query-keys';
 import type { UserSummary } from '@/lib/api/server/users';
@@ -51,6 +41,10 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
+import { cn } from '@/lib/utils';
+
+const primaryBtnClass =
+  'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
 
 type TabId = 'profile' | 'skills' | 'certifications' | 'availability' | 'schedule' | 'overtime';
 
@@ -62,12 +56,12 @@ interface StaffDetailSheetProps {
 }
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: 'profile', label: 'Profile', icon: <UserIcon className="size-3" /> },
-  { id: 'skills', label: 'Skills', icon: <WrenchIcon className="size-3" /> },
-  { id: 'certifications', label: 'Certs', icon: <AwardIcon className="size-3" /> },
-  { id: 'availability', label: 'Availability', icon: <CalendarIcon className="size-3" /> },
-  { id: 'schedule', label: 'Schedule', icon: <ClockIcon className="size-3" /> },
-  { id: 'overtime', label: 'Overtime', icon: <TrendingUpIcon className="size-3" /> },
+  { id: 'profile', label: 'Profile', icon: <UserIcon className="size-3.5" /> },
+  { id: 'skills', label: 'Skills', icon: <WrenchIcon className="size-3.5" /> },
+  { id: 'certifications', label: 'Certifications', icon: <AwardIcon className="size-3.5" /> },
+  { id: 'availability', label: 'Availability', icon: <CalendarIcon className="size-3.5" /> },
+  { id: 'schedule', label: 'Schedule', icon: <ClockIcon className="size-3.5" /> },
+  { id: 'overtime', label: 'Overtime', icon: <TrendingUpIcon className="size-3.5" /> },
 ];
 
 export function StaffDetailSheet({ user, open, onOpenChange, onClose }: StaffDetailSheetProps) {
@@ -85,39 +79,57 @@ export function StaffDetailSheet({ user, open, onOpenChange, onClose }: StaffDet
 
   const u = detail ?? user;
 
-  const handleClose = (open: boolean) => {
-    if (!open) onClose();
-    onOpenChange(open);
+  const handleClose = (nextOpen: boolean) => {
+    if (!nextOpen) onClose();
+    onOpenChange(nextOpen);
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent
-        side="right"
-        className="flex w-full flex-col overflow-hidden p-4 sm:!max-w-md lg:!max-w-2xl data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-right-10 data-[state=open]:duration-300 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-right-10 data-[state=closed]:duration-200"
-      >
-        <SheetHeader>
-          {u && (
-            <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className="text-base">{u.firstName[0]}{u.lastName[0]}</AvatarFallback>
-              </Avatar>
-              <div>
-                <SheetTitle>{u.firstName} {u.lastName}</SheetTitle>
-                <SheetDescription>{u.email}</SheetDescription>
-                <Badge variant="secondary" className="mt-1">{u.role}</Badge>
+    <DetailSheet
+      open={open}
+      onOpenChange={handleClose}
+      size="detail"
+      header={
+        u ? (
+          <div className="flex items-start gap-4">
+            <Avatar className="size-14 shrink-0 rounded-2xl">
+              <AvatarFallback className="rounded-2xl bg-brand-green/15 text-lg font-bold text-brand-green-dark">
+                {u.firstName[0]}
+                {u.lastName[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <SheetTitle className="truncate text-xl">
+                {u.firstName} {u.lastName}
+              </SheetTitle>
+              <SheetDescription className="mt-1 truncate">{u.email}</SheetDescription>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="capitalize">
+                  {u.role}
+                </Badge>
+                <Badge variant={u.isActive ? 'default' : 'destructive'}>
+                  {u.isActive ? 'Active' : 'Inactive'}
+                </Badge>
               </div>
             </div>
-          )}
-        </SheetHeader>
-
-        <div className="flex gap-1 overflow-x-auto border-b border-border pb-2 shrink-0">
+          </div>
+        ) : (
+          <Skeleton className="h-16 w-full rounded-xl" />
+        )
+      }
+      tabs={
+        <div className={sheetTabsClass}>
           {TABS.map((tab) => (
             <Button
               key={tab.id}
-              variant={activeTab === tab.id ? 'secondary' : 'ghost'}
+              variant="ghost"
               size="sm"
-              className="shrink-0 gap-1"
+              className={cn(
+                'h-9 shrink-0 gap-1.5 rounded-full px-3.5 text-sm font-medium',
+                activeTab === tab.id
+                  ? 'bg-brand-green/15 text-brand-green-dark hover:bg-brand-green/20'
+                  : 'text-landing-steel hover:bg-landing-surface hover:text-brand-teal-deep',
+              )}
               onClick={() => setActiveTab(tab.id)}
             >
               {tab.icon}
@@ -125,23 +137,27 @@ export function StaffDetailSheet({ user, open, onOpenChange, onClose }: StaffDet
             </Button>
           ))}
         </div>
-
-        <div className="min-h-0 flex-1 overflow-auto py-2">
-          {!u && isLoading && (
-            <div className="space-y-3">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-          )}
-          {u && activeTab === 'profile' && <ProfileTab user={u} onUpdated={() => queryClient.invalidateQueries({ queryKey: queryKeys.users.detail(u.id) })} />}
-          {u && activeTab === 'skills' && <SkillsTab user={u} onUpdated={() => queryClient.invalidateQueries({ queryKey: queryKeys.users.detail(u.id) })} />}
-          {u && activeTab === 'certifications' && <CertificationsTab user={u} onUpdated={() => queryClient.invalidateQueries({ queryKey: queryKeys.users.detail(u.id) })} />}
-          {u && activeTab === 'availability' && <AvailabilityEditor userId={u.id} />}
-          {u && activeTab === 'schedule' && <StaffScheduleTab userId={u.id} />}
-          {u && activeTab === 'overtime' && <OvertimeTab userId={u.id} />}
+      }
+    >
+      {!u && isLoading && (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
         </div>
-      </SheetContent>
-    </Sheet>
+      )}
+      {u && activeTab === 'profile' && (
+        <ProfileTab user={u} onUpdated={() => queryClient.invalidateQueries({ queryKey: queryKeys.users.detail(u.id) })} />
+      )}
+      {u && activeTab === 'skills' && (
+        <SkillsTab user={u} onUpdated={() => queryClient.invalidateQueries({ queryKey: queryKeys.users.detail(u.id) })} />
+      )}
+      {u && activeTab === 'certifications' && (
+        <CertificationsTab user={u} onUpdated={() => queryClient.invalidateQueries({ queryKey: queryKeys.users.detail(u.id) })} />
+      )}
+      {u && activeTab === 'availability' && <AvailabilityEditor userId={u.id} />}
+      {u && activeTab === 'schedule' && <StaffScheduleTab userId={u.id} />}
+      {u && activeTab === 'overtime' && <OvertimeTab userId={u.id} />}
+    </DetailSheet>
   );
 }
 
@@ -174,55 +190,53 @@ function ProfileTab({ user, onUpdated }: { user: UserSummary; onUpdated: () => v
 
   if (editing) {
     return (
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-sm">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">First name</label>
-            <Input {...register('firstName', { required: true })} className="h-8" />
+      <SheetSection title="Edit profile" hoverable={false}>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-brand-teal-deep">First name</Label>
+              <Input {...register('firstName', { required: true })} className="h-11 border-landing-hairline" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-brand-teal-deep">Last name</Label>
+              <Input {...register('lastName', { required: true })} className="h-11 border-landing-hairline" />
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Last name</label>
-            <Input {...register('lastName', { required: true })} className="h-8" />
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-brand-teal-deep">Phone</Label>
+            <Input {...register('phone')} className="h-11 border-landing-hairline" placeholder="+1 555 000 0000" />
           </div>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Phone</label>
-          <Input {...register('phone')} className="h-8" placeholder="+1 555 000 0000" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Desired hours/week</label>
-          <Input {...register('desiredHoursPerWeek')} type="number" className="h-8" min={0} max={60} />
-        </div>
-        <div className="flex gap-2">
-          <Button type="submit" size="sm" disabled={isSubmitting}>Save</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
-        </div>
-      </form>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-brand-teal-deep">Desired hours per week</Label>
+            <Input {...register('desiredHoursPerWeek')} type="number" className="h-11 border-landing-hairline" min={0} max={60} />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button type="submit" disabled={isSubmitting} className={primaryBtnClass}>
+              Save changes
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </SheetSection>
     );
   }
 
   return (
-    <div className="space-y-4 text-sm">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <p className="text-xs text-muted-foreground">Phone</p>
-          <p className="text-foreground">{user.phone ?? '—'}</p>
+    <div className="flex flex-col gap-4">
+      <SheetSection title="Contact & preferences">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SheetField label="Phone" value={user.phone ?? '—'} />
+          <SheetField label="Desired hours / week" value={user.desiredHoursPerWeek ?? '—'} />
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Desired hrs/week</p>
-          <p className="text-foreground">{user.desiredHoursPerWeek ?? '—'}</p>
-        </div>
-      </div>
-      <div>
-        <p className="text-xs text-muted-foreground">Notifications</p>
-        <p className="text-foreground">In-app: {user.notifyInApp ? 'On' : 'Off'} · Email: {user.notifyEmail ? 'On' : 'Off'}</p>
-      </div>
-      <div>
-        <p className="text-xs text-muted-foreground">Status</p>
-        <Badge variant={user.isActive ? 'default' : 'destructive'}>{user.isActive ? 'Active' : 'Inactive'}</Badge>
-      </div>
+        <SheetField
+          label="Notifications"
+          value={`In-app: ${user.notifyInApp ? 'On' : 'Off'} · Email: ${user.notifyEmail ? 'On' : 'Off'}`}
+        />
+      </SheetSection>
       <RoleGate role={['admin']}>
-        <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+        <Button size="sm" variant="outline" className="w-fit rounded-full" onClick={() => setEditing(true)}>
           Edit profile
         </Button>
       </RoleGate>
@@ -274,48 +288,63 @@ function SkillsTab({ user, onUpdated }: { user: UserSummary; onUpdated: () => vo
   }
 
   return (
-    <div className="space-y-3">
+    <SheetSection
+      title="Assigned skills"
+      description="Skills this team member can be scheduled for."
+      action={
+        <RoleGate role={['admin']}>
+          <Button size="sm" variant="outline" className="h-8 rounded-full text-xs" onClick={() => setAddOpen(true)}>
+            <PlusIcon className="mr-1 size-3.5" /> Add skill
+          </Button>
+        </RoleGate>
+      }
+    >
       <div className="flex flex-wrap gap-2">
         {(user.skills ?? []).map((s) => (
-          <div key={s.id} className="flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-sm">
-            <span className="text-foreground">{s.name}</span>
+          <div
+            key={s.id}
+            className="inline-flex items-center gap-1.5 rounded-full border border-landing-hairline bg-landing-surface/80 px-3 py-1 text-sm font-medium text-brand-teal-deep"
+          >
+            {s.name}
             <RoleGate role={['admin']}>
-              <button onClick={() => removeSkill(s.id)} className="text-muted-foreground hover:text-destructive">
-                <XIcon className="size-3" />
+              <button
+                type="button"
+                onClick={() => removeSkill(s.id)}
+                className="text-landing-steel transition-colors hover:text-destructive"
+                aria-label={`Remove ${s.name}`}
+              >
+                <XIcon className="size-3.5" />
               </button>
             </RoleGate>
           </div>
         ))}
         {(!user.skills || user.skills.length === 0) && (
-          <p className="text-sm text-muted-foreground">No skills assigned.</p>
+          <p className="text-sm text-landing-steel">No skills assigned yet.</p>
         )}
       </div>
-      <RoleGate role={['admin']}>
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setAddOpen(true)}>
-          <PlusIcon className="mr-1 size-3" /> Add skill
-        </Button>
-      </RoleGate>
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add skill</DialogTitle>
-          </DialogHeader>
-          <select
-            className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
-            value={selectedSkillId}
-            onChange={(e) => setSelectedSkillId(e.target.value)}
-          >
-            <option value="">— Select skill —</option>
-            {available.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <DialogFooter>
+      <FormSheet
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        title="Add skill"
+        size="md"
+        footer={
+          <>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={addSkill} disabled={!selectedSkillId || actioning}>Add</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            <Button onClick={addSkill} disabled={!selectedSkillId || actioning} className={primaryBtnClass}>
+              Add skill
+            </Button>
+          </>
+        }
+      >
+        <FormSelect
+          value={selectedSkillId}
+          onValueChange={setSelectedSkillId}
+          placeholder="Select skill"
+          options={available.map((s) => ({ value: s.id, label: s.name }))}
+        />
+      </FormSheet>
+    </SheetSection>
   );
 }
 
@@ -374,82 +403,101 @@ function CertificationsTab({ user, onUpdated }: { user: UserSummary; onUpdated: 
   }
 
   return (
-    <div className="space-y-3">
-      <ul className="space-y-2">
+    <SheetSection
+      title="Location certifications"
+      description="Locations this staff member is approved to work at."
+      action={
+        <RoleGate role={['admin']}>
+          <Button size="sm" variant="outline" className="h-8 rounded-full text-xs" onClick={() => setAddOpen(true)}>
+            <PlusIcon className="mr-1 size-3.5" /> Add certification
+          </Button>
+        </RoleGate>
+      }
+    >
+      <ul className="flex flex-col gap-2">
         {activeCerts.map((c) => (
-          <li key={c.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-            <span className="text-sm text-foreground">{c.location?.name ?? c.locationId}</span>
+          <li
+            key={c.id}
+            className="flex items-center justify-between rounded-xl border border-landing-hairline bg-landing-surface/50 px-4 py-3 transition-colors hover:border-brand-green/20 hover:bg-brand-green/[0.03]"
+          >
+            <span className="text-sm font-medium text-brand-teal-deep">
+              {c.location?.name ?? c.locationId}
+            </span>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">Certified</Badge>
+              <Badge variant="outline" className="border-brand-green/30 text-brand-green-dark">
+                Certified
+              </Badge>
               <RoleGate role={['admin']}>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                  onClick={() => setRevokeTarget({ id: c.locationId, locationName: c.location?.name ?? c.locationId })}
+                  className="size-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() =>
+                    setRevokeTarget({
+                      id: c.locationId,
+                      locationName: c.location?.name ?? c.locationId,
+                    })
+                  }
                 >
-                  <ShieldOffIcon className="size-3" />
+                  <ShieldOffIcon className="size-4" />
                 </Button>
               </RoleGate>
             </div>
           </li>
         ))}
-        {activeCerts.length === 0 && <p className="text-sm text-muted-foreground">No certified locations.</p>}
+        {activeCerts.length === 0 && (
+          <p className="text-sm text-landing-steel">No certified locations.</p>
+        )}
       </ul>
 
-      {(user.locationCertifications ?? []).filter((c) => c.revokedAt).length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {(user.locationCertifications ?? []).filter((c) => c.revokedAt).length} revoked certification(s) in history.
-        </p>
-      )}
-
-      <RoleGate role={['admin']}>
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setAddOpen(true)}>
-          <PlusIcon className="mr-1 size-3" /> Add certification
-        </Button>
-      </RoleGate>
-
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add location certification</DialogTitle>
-          </DialogHeader>
-          <select
-            className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
-            value={selectedLocationId}
-            onChange={(e) => setSelectedLocationId(e.target.value)}
-          >
-            <option value="">— Select location —</option>
-            {available.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-          <DialogFooter>
+      <FormSheet
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        title="Add location certification"
+        size="md"
+        footer={
+          <>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={addCert} disabled={!selectedLocationId || actioning}>Certify</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button onClick={addCert} disabled={!selectedLocationId || actioning} className={primaryBtnClass}>
+              Certify
+            </Button>
+          </>
+        }
+      >
+        <FormSelect
+          value={selectedLocationId}
+          onValueChange={setSelectedLocationId}
+          placeholder="Select location"
+          options={available.map((l) => ({ value: l.id, label: l.name }))}
+        />
+      </FormSheet>
 
-      <Dialog open={!!revokeTarget} onOpenChange={(open) => !open && setRevokeTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Revoke certification</DialogTitle>
-            <DialogDescription>Revoke {user.firstName}&apos;s certification for {revokeTarget?.locationName}. Historical assignments are preserved.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Reason (optional)</label>
-            <Input
-              value={revokeReason}
-              onChange={(e) => setRevokeReason(e.target.value)}
-              placeholder="Reason for revocation"
-            />
-          </div>
-          <DialogFooter>
+      <FormSheet
+        open={!!revokeTarget}
+        onOpenChange={(open) => !open && setRevokeTarget(null)}
+        title="Revoke certification"
+        description={`Revoke ${user.firstName}'s certification for ${revokeTarget?.locationName}. Historical assignments are preserved.`}
+        size="md"
+        footer={
+          <>
             <Button variant="outline" onClick={() => setRevokeTarget(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={revokeCert} disabled={actioning}>Revoke</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            <Button variant="destructive" onClick={revokeCert} disabled={actioning}>
+              Revoke
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-brand-teal-deep">Reason (optional)</Label>
+          <Input
+            value={revokeReason}
+            onChange={(e) => setRevokeReason(e.target.value)}
+            placeholder="Reason for revocation"
+            className="h-11 border-landing-hairline"
+          />
+        </div>
+      </FormSheet>
+    </SheetSection>
   );
 }
 
@@ -470,39 +518,54 @@ function StaffScheduleTab({ userId }: { userId: string }) {
     enabled: !!userId,
   });
 
-  if (isLoading) return <Skeleton className="h-24 w-full" />;
+  if (isLoading) return <Skeleton className="h-24 w-full rounded-xl" />;
   const list = Array.isArray(assignments) ? assignments : [];
 
   return (
-    <div className="space-y-2 text-sm">
-      <p className="text-xs text-muted-foreground">Upcoming and recent shifts (±2 weeks)</p>
+    <SheetSection title="Schedule" description="Upcoming and recent shifts (±2 weeks)">
       {list.length === 0 ? (
-        <p className="text-muted-foreground">No assignments in this range.</p>
+        <p className="text-sm text-landing-steel">No assignments in this range.</p>
       ) : (
-        <ul className="space-y-1">
+        <ul className="flex flex-col gap-2">
           {list.slice(0, 15).map((a: {
             id: string;
             status: string;
             shift?: { title?: string; startAt?: string; endAt?: string; location?: { name?: string; ianaTimezone?: string } };
           }) => {
             const shift = a.shift;
-            const timeLabel = shift?.startAt && shift?.endAt
-              ? formatShiftTimeRange({ startAt: shift.startAt, endAt: shift.endAt, locationTimezone: shift.location?.ianaTimezone ?? 'UTC' }).primary
-              : shift?.startAt ? new Date(shift.startAt).toLocaleString() : '—';
+            const timeLabel =
+              shift?.startAt && shift?.endAt
+                ? formatShiftTimeRange({
+                    startAt: shift.startAt,
+                    endAt: shift.endAt,
+                    locationTimezone: shift.location?.ianaTimezone ?? 'UTC',
+                  }).primary
+                : shift?.startAt
+                  ? new Date(shift.startAt).toLocaleString()
+                  : '—';
             return (
-              <li key={a.id} className="flex items-center justify-between rounded border border-border px-2 py-1.5">
-                <div>
-                  <span className="text-sm text-foreground">{shift?.title ?? 'Shift'}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">{timeLabel}</span>
+              <li
+                key={a.id}
+                className="flex items-center justify-between rounded-xl border border-landing-hairline px-4 py-3 transition-colors hover:border-brand-green/20 hover:bg-brand-green/[0.03]"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-brand-teal-deep">
+                    {shift?.title ?? 'Shift'}
+                  </p>
+                  <p className="mt-0.5 text-xs text-landing-steel">{timeLabel}</p>
                 </div>
-                <Badge variant="secondary" className="text-xs">{a.status}</Badge>
+                <Badge variant="secondary" className="shrink-0 capitalize">
+                  {a.status}
+                </Badge>
               </li>
             );
           })}
-          {list.length > 15 && <p className="text-xs text-muted-foreground">+{list.length - 15} more</p>}
+          {list.length > 15 && (
+            <p className="text-xs text-landing-muted">+{list.length - 15} more shifts</p>
+          )}
         </ul>
       )}
-    </div>
+    </SheetSection>
   );
 }
 
@@ -534,7 +597,7 @@ function OvertimeTab({ userId }: { userId: string }) {
     enabled: !!userId,
   });
 
-  if (weekQueries.isLoading) return <Skeleton className="h-48 w-full" />;
+  if (weekQueries.isLoading) return <Skeleton className="h-48 w-full rounded-xl" />;
 
   const chartData = (weekQueries.data ?? []).map((d) => ({
     week: new Date(d.weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -544,42 +607,45 @@ function OvertimeTab({ userId }: { userId: string }) {
   const latest = chartData[chartData.length - 1];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4 text-sm">
-        <div>
-          <p className="text-xs text-muted-foreground">This week</p>
-          <p className={`text-2xl font-bold ${latest?.hours >= 40 ? 'text-destructive' : latest?.hours >= 35 ? 'text-amber-500' : 'text-foreground'}`}>
-            {latest?.hours ?? 0}h
-          </p>
+    <div className="flex flex-col gap-4">
+      <SheetSection title="Weekly hours" hoverable={false}>
+        <div className="flex flex-wrap items-center gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-landing-steel">This week</p>
+            <p
+              className={cn(
+                'font-display text-3xl font-semibold tracking-tight',
+                latest?.hours >= 40
+                  ? 'text-destructive'
+                  : latest?.hours >= 35
+                    ? 'text-landing-accent-orange'
+                    : 'text-brand-teal-deep',
+              )}
+            >
+              {latest?.hours ?? 0}h
+            </p>
+          </div>
+          {latest?.hours >= 40 && <Badge variant="destructive">Overtime</Badge>}
+          {latest?.hours >= 35 && latest.hours < 40 && (
+            <Badge variant="outline" className="border-landing-accent-orange text-landing-accent-orange">
+              Approaching OT
+            </Badge>
+          )}
         </div>
-        {latest?.hours >= 40 && (
-          <Badge variant="destructive">Overtime</Badge>
-        )}
-        {latest?.hours >= 35 && latest.hours < 40 && (
-          <Badge variant="outline" className="border-amber-400 text-amber-600">Approaching OT</Badge>
-        )}
-      </div>
-      <div>
-        <p className="mb-2 text-xs font-medium text-muted-foreground">8-week history</p>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-            <XAxis dataKey="week" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 10 }} domain={[0, 60]} />
-            <Tooltip
-              contentStyle={{ fontSize: 12, borderRadius: 6 }}
-              formatter={(v: number) => [`${v}h`, 'Hours']}
-            />
-            <ReferenceLine y={40} stroke="var(--destructive)" strokeDasharray="3 3" label={{ value: '40h', fontSize: 10 }} />
-            <ReferenceLine y={35} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: '35h', fontSize: 10 }} />
-            <Bar
-              dataKey="hours"
-              radius={[3, 3, 0, 0]}
-              fill="hsl(var(--primary))"
-            />
+      </SheetSection>
+      <SheetSection title="8-week history" hoverable={false}>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e1e5e8" vertical={false} />
+            <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#7c8c9a' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#7c8c9a' }} domain={[0, 60]} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10 }} formatter={(v: number) => [`${v}h`, 'Hours']} />
+            <ReferenceLine y={40} stroke="#fa6e39" strokeDasharray="3 3" />
+            <ReferenceLine y={35} stroke="#7b3ff2" strokeDasharray="3 3" />
+            <Bar dataKey="hours" radius={[6, 6, 0, 0]} fill="#00ed64" />
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </SheetSection>
     </div>
   );
 }

@@ -8,6 +8,20 @@ import { queryKeys } from '@/lib/query-keys';
 import type { AuditLogEntry } from '@/lib/api/server/audit';
 import { PermissionGate } from '@/components/shared/PermissionGate';
 import { PaginationControls } from '@/components/shared/PaginationControls';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { FilterBar } from '@/components/dashboard/filter-bar';
+import { DashboardCard } from '@/components/dashboard/dashboard-card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
+const primaryBtnClass =
+  'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
 
 export function AuditClient() {
   const [actorEmail, setActorEmail] = useState('');
@@ -44,23 +58,25 @@ export function AuditClient() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold text-foreground">Audit Log</h1>
-        <PermissionGate require="audit:export">
-          <Button
-            size="sm"
-            variant="default"
-            className="min-h-[44px] sm:min-h-0"
-            onClick={handleExport}
-          >
-            Export CSV
-          </Button>
-        </PermissionGate>
-      </div>
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <PageHeader
+        title="Audit Log"
+        description="Track platform activity, changes, and user actions."
+        actions={
+          <PermissionGate require="audit:export">
+            <Button
+              size="sm"
+              className={`min-h-[44px] sm:min-h-0 ${primaryBtnClass}`}
+              onClick={handleExport}
+            >
+              Export CSV
+            </Button>
+          </PermissionGate>
+        }
+      />
 
-      <PermissionGate require="audit:view" fallback={<p className="text-sm text-muted-foreground">You need audit:view permission.</p>}>
-        <div className="flex flex-wrap gap-3 rounded-lg border border-border bg-card p-3">
+      <PermissionGate require="audit:view" fallback={<p className="text-sm text-landing-steel">You need audit:view permission.</p>}>
+        <FilterBar>
           <input
             type="text"
             placeholder="Search by actor email…"
@@ -68,43 +84,43 @@ export function AuditClient() {
             value={actorEmail}
             onChange={(e) => { setActorEmail(e.target.value); setPage(1); }}
           />
-        </div>
+        </FilterBar>
 
-        {isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
+        {isLoading && <div className="text-sm text-landing-steel">Loading…</div>}
         {!isLoading && (
-          <div className="overflow-x-auto rounded-lg border border-border -mx-1 px-1 sm:mx-0 sm:px-0">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted">
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Timestamp</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Actor</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Action</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Entity</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Location</th>
-                </tr>
-              </thead>
-              <tbody>
+          <DashboardCard title="Activity log" noPadding>
+            <Table className="min-w-[720px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>Actor</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Entity</TableHead>
+                  <TableHead>Location</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {logs.map((log) => (
-                  <tr key={log.id} className="border-b border-border">
-                    <td className="px-3 py-2 text-muted-foreground">
+                  <TableRow key={log.id}>
+                    <TableCell className="text-landing-steel">
                       {log.createdAt ? new Date(log.createdAt).toLocaleString() : '—'}
-                    </td>
-                    <td className="px-3 py-2 text-foreground">
+                    </TableCell>
+                    <TableCell>
                       {log.actor ? `${log.actor.email}` : log.actorId ?? '—'}
-                    </td>
-                    <td className="px-3 py-2 text-foreground">{log.action}</td>
-                    <td className="px-3 py-2 text-muted-foreground">
+                    </TableCell>
+                    <TableCell>{log.action}</TableCell>
+                    <TableCell className="text-landing-steel">
                       {log.entityType} {log.entityId}
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">{log.location?.name ?? '—'}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="text-landing-steel">{log.location?.name ?? '—'}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             {logs.length === 0 && (
-              <div className="px-3 py-8 text-center text-sm text-muted-foreground">No audit logs.</div>
+              <div className="px-3 py-8 text-center text-sm text-landing-steel">No audit logs.</div>
             )}
-          </div>
+          </DashboardCard>
         )}
         <PaginationControls currentPage={page} totalPages={totalPages} onPageChange={setPage} />
       </PermissionGate>

@@ -4,13 +4,19 @@
 /build
 
 # Next.js build output
-.next/
+.next
 out/
 dist/
+graphify-out
+DESIGN.md
+.cursor
+.agents
+
 
 # Logs
 logs
 *.log
+package-lock.json
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
@@ -60,3 +66,8 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+.next/
+*.tsbuildinfo
+.cursor/
+.agents/
+graphify-out/

@@ -8,14 +8,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { FormSheet } from '@/components/dashboard/form-sheet';
+import { FilterSelect } from '@/components/dashboard/filter-select';
+import { FormSelectField } from '@/components/dashboard/form-select-field';
 import { apiClient } from '@/lib/api/client/client';
 import { queryKeys } from '@/lib/query-keys';
 import type { UserSummary } from '@/lib/api/server/users';
@@ -28,7 +23,21 @@ import { PermissionGate } from '@/components/shared/PermissionGate';
 import { RoleGate } from '@/components/shared/RoleGate';
 import { PaginationControls, usePagination } from '@/components/shared/PaginationControls';
 import { StaffDetailSheet } from './staff-detail-sheet';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { FilterBar } from '@/components/dashboard/filter-bar';
+import { DashboardCard } from '@/components/dashboard/dashboard-card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { PlusIcon } from 'lucide-react';
+
+const primaryBtnClass =
+  'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
 
 interface CreateUserForm {
   email: string;
@@ -68,7 +77,7 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
   const [staffPage, setStaffPage] = useState(1);
   const STAFF_PAGE_SIZE = 10;
 
-  const { register: regCreate, handleSubmit: handleCreate, reset: resetCreate, formState: { isSubmitting: createSubmitting, errors: createErrors } } = useForm<CreateUserForm>({
+  const { register: regCreate, handleSubmit: handleCreate, reset: resetCreate, control: createControl, formState: { isSubmitting: createSubmitting, errors: createErrors } } = useForm<CreateUserForm>({
     defaultValues: { role: 'staff' },
   });
 
@@ -167,112 +176,105 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold text-foreground">Staff</h1>
-        <RoleGate role={['admin']}>
-          <Button size="sm" className="min-h-[44px] sm:min-h-0" onClick={() => setCreateOpen(true)}>
-            <PlusIcon className="mr-1.5 size-4" /> Add user
-          </Button>
-        </RoleGate>
-      </div>
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <PageHeader
+        title="Staff"
+        description="Manage team members, roles, skills, and location certifications."
+        actions={
+          <RoleGate role={['admin']}>
+            <Button size="sm" className={`min-h-[44px] sm:min-h-0 ${primaryBtnClass}`} onClick={() => setCreateOpen(true)}>
+              <PlusIcon className="mr-1.5 size-4" /> Add user
+            </Button>
+          </RoleGate>
+        }
+      />
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create user</DialogTitle>
-            <DialogDescription>Add a new staff member, manager, or admin to the platform.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreate(onCreateUser)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">First name *</label>
-                <Input {...regCreate('firstName', { required: true })} />
-                {createErrors.firstName && <p className="text-xs text-destructive">Required</p>}
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Last name *</label>
-                <Input {...regCreate('lastName', { required: true })} />
-                {createErrors.lastName && <p className="text-xs text-destructive">Required</p>}
-              </div>
+      <FormSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="Create user"
+        description="Add a new staff member, manager, or admin to the platform."
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button type="submit" form="create-user-form" disabled={createSubmitting} className={primaryBtnClass}>Create user</Button>
+          </>
+        }
+      >
+        <form id="create-user-form" onSubmit={handleCreate(onCreateUser)} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">First name *</label>
+              <Input {...regCreate('firstName', { required: true })} />
+              {createErrors.firstName && <p className="text-xs text-destructive">Required</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Email *</label>
-              <Input {...regCreate('email', { required: true })} type="email" placeholder="user@coastaleats.com" />
-              {createErrors.email && <p className="text-xs text-destructive">Required</p>}
+              <label className="text-sm font-medium text-foreground">Last name *</label>
+              <Input {...regCreate('lastName', { required: true })} />
+              {createErrors.lastName && <p className="text-xs text-destructive">Required</p>}
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Password *</label>
-              <Input {...regCreate('password', { required: true, minLength: 8 })} type="password" placeholder="Min 8 characters" />
-              {createErrors.password && <p className="text-xs text-destructive">Min 8 characters required</p>}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Role *</label>
-              <select className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground" {...regCreate('role')}>
-                <option value="staff">Staff</option>
-                <option value="manager">Manager</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={createSubmitting}>Create user</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Email *</label>
+            <Input {...regCreate('email', { required: true })} type="email" placeholder="user@coastaleats.com" />
+            {createErrors.email && <p className="text-xs text-destructive">Required</p>}
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Password *</label>
+            <Input {...regCreate('password', { required: true, minLength: 8 })} type="password" placeholder="Min 8 characters" />
+            {createErrors.password && <p className="text-xs text-destructive">Min 8 characters required</p>}
+          </div>
+          <FormSelectField
+            control={createControl}
+            name="role"
+            label="Role *"
+            placeholder="Select role"
+            options={[
+              { value: 'staff', label: 'Staff' },
+              { value: 'manager', label: 'Manager' },
+              { value: 'admin', label: 'Admin' },
+            ]}
+          />
+        </form>
+      </FormSheet>
 
-      <PermissionGate require="users:view" fallback={<p className="text-sm text-muted-foreground">You don&apos;t have permission to view the staff list.</p>}>
-        <div className="flex flex-wrap gap-3 rounded-lg border border-border bg-card p-3">
-          <select
-            className="h-10 w-full min-h-[44px] rounded-md border border-input bg-background px-2 text-sm text-foreground sm:h-9 sm:w-auto sm:min-h-0"
+      <PermissionGate require="users:view" fallback={<p className="text-sm text-landing-steel">You don&apos;t have permission to view the staff list.</p>}>
+        <FilterBar>
+          <FilterSelect
             value={roleFilter}
-            onChange={(e) => { setRoleFilter(e.target.value); setStaffPage(1); }}
-          >
-            <option value="">All roles</option>
-            <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
-            <option value="staff">Staff</option>
-          </select>
-          <select
-            className="h-10 w-full min-h-[44px] rounded-md border border-input bg-background px-2 text-sm text-foreground sm:h-9 sm:w-auto sm:min-h-0"
+            onValueChange={(v) => { setRoleFilter(v); setStaffPage(1); }}
+            placeholder="All roles"
+            options={[
+              { value: 'admin', label: 'Admin' },
+              { value: 'manager', label: 'Manager' },
+              { value: 'staff', label: 'Staff' },
+            ]}
+          />
+          <FilterSelect
             value={locationFilter}
-            onChange={(e) => { setLocationFilter(e.target.value); setStaffPage(1); }}
-          >
-            <option value="">All locations</option>
-            {locations.map((loc) => (
-              <option key={loc.id} value={loc.id}>
-                {loc.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="h-10 w-full min-h-[44px] rounded-md border border-input bg-background px-2 text-sm text-foreground sm:h-9 sm:w-auto sm:min-h-0"
+            onValueChange={(v) => { setLocationFilter(v); setStaffPage(1); }}
+            placeholder="All locations"
+            options={locations.map((loc) => ({ value: loc.id, label: loc.name }))}
+          />
+          <FilterSelect
             value={skillFilter}
-            onChange={(e) => { setSkillFilter(e.target.value); setStaffPage(1); }}
-          >
-            <option value="">All skills</option>
-            {skills.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="h-10 w-full min-h-[44px] rounded-md border border-input bg-background px-2 text-sm text-foreground sm:h-9 sm:w-auto sm:min-h-0"
-            value={activeFilter === 'all' ? 'all' : activeFilter ? 'active' : 'inactive'}
-            onChange={(e) => {
-              setActiveFilter(
-                e.target.value === 'all' ? 'all' : e.target.value === 'active',
-              );
+            onValueChange={(v) => { setSkillFilter(v); setStaffPage(1); }}
+            placeholder="All skills"
+            options={skills.map((s) => ({ value: s.id, label: s.name }))}
+          />
+          <FilterSelect
+            value={activeFilter === 'all' ? '' : activeFilter ? 'active' : 'inactive'}
+            onValueChange={(v) => {
+              setActiveFilter(v === '' ? 'all' : v === 'active');
               setStaffPage(1);
             }}
-          >
-            <option value="all">All status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
+            placeholder="All status"
+            options={[
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive' },
+            ]}
+          />
+        </FilterBar>
 
         {isLoading && <StaffTableSkeleton />}
         {isError && (
@@ -289,26 +291,26 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
         )}
         {!isLoading && !isError && (
           <>
-          <div className="overflow-x-auto rounded-lg border border-border -mx-1 px-1 sm:mx-0 sm:px-0">
-            <table className="w-full min-w-[900px] text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted">
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Staff</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Role</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Skills</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Certified locations</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Hours</th>
-                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Status</th>
-                </tr>
-              </thead>
-              <tbody>
+          <DashboardCard title="Staff list" description={`${filtered.length} team member${filtered.length === 1 ? '' : 's'}`} noPadding hoverable>
+            <Table className="min-w-[900px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Staff</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Skills</TableHead>
+                  <TableHead>Certified locations</TableHead>
+                  <TableHead>Hours</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {pagedStaff.map((user) => (
-                  <tr
+                  <TableRow
                     key={user.id}
-                    className="cursor-pointer border-b border-border transition hover:bg-muted"
+                    className="cursor-pointer"
                     onClick={() => openDetail(user)}
                   >
-                    <td className="px-3 py-2">
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="text-xs">
@@ -317,17 +319,17 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-foreground">
+                          <p className="font-medium text-brand-teal-deep">
                             {user.firstName} {user.lastName}
                           </p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                          <p className="text-xs text-landing-muted">{user.email}</p>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-3 py-2">
+                    </TableCell>
+                    <TableCell>
                       <Badge variant="secondary">{user.role}</Badge>
-                    </td>
-                    <td className="px-3 py-2">
+                    </TableCell>
+                    <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {(user.skills ?? []).map((s) => (
                           <Badge key={s.id} variant="outline" className="text-xs">
@@ -335,11 +337,11 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
                           </Badge>
                         ))}
                         {(!user.skills || user.skills.length === 0) && (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-landing-steel">—</span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-3 py-2">
+                    </TableCell>
+                    <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {(user.locationCertifications ?? [])
                           .filter((c) => !c.revokedAt)
@@ -350,33 +352,33 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
                           ))}
                         {(!user.locationCertifications ||
                           user.locationCertifications.filter((c) => !c.revokedAt).length === 0) && (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-landing-steel">—</span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
+                    </TableCell>
+                    <TableCell className="text-landing-steel">
                       {weeklyHours[user.id] != null ? (
                         <span className={weeklyHours[user.id] >= 40 ? 'font-medium text-destructive' : weeklyHours[user.id] >= 35 ? 'font-medium text-amber-600' : ''}>
                           {weeklyHours[user.id]}h
                         </span>
                       ) : '—'}
-                    </td>
-                    <td className="px-3 py-2">
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={user.isActive ? 'default' : 'secondary'}>
                         {user.isActive ? 'Active' : 'Inactive'}
                       </Badge>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             {filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center px-3 py-12 text-center">
-                <p className="text-sm font-medium text-muted-foreground">No staff match the filters.</p>
-                <p className="mt-1 text-xs text-muted-foreground">Try changing filters or add staff from your admin.</p>
+                <p className="text-sm font-medium text-landing-steel">No staff match the filters.</p>
+                <p className="mt-1 text-xs text-landing-muted">Try changing filters or add staff from your admin.</p>
               </div>
             )}
-          </div>
+          </DashboardCard>
           <PaginationControls currentPage={staffPage} totalPages={staffTotalPages} onPageChange={safeSetStaffPage} />
           </>
         )}

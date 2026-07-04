@@ -2,10 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { getSocket } from '@/lib/socket';
+import { cn } from '@/lib/utils';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting' | 'failed';
 
-export function SocketStatus() {
+const statusCopy: Record<ConnectionStatus, string> = {
+  connected: 'Live',
+  disconnected: 'Offline',
+  reconnecting: 'Reconnecting',
+  failed: 'Paused',
+};
+
+const dotColor: Record<ConnectionStatus, string> = {
+  connected: 'bg-brand-green',
+  disconnected: 'bg-landing-muted',
+  reconnecting: 'bg-landing-accent-orange animate-pulse',
+  failed: 'bg-destructive',
+};
+
+export function SocketStatus({ compact }: { compact?: boolean }) {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
 
   useEffect(() => {
@@ -32,28 +47,19 @@ export function SocketStatus() {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-      {status === 'connected' && (
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-primary" title="Connected" />
-        </span>
+    <div
+      className={cn(
+        'flex items-center gap-1.5 text-xs',
+        compact ? 'text-landing-steel' : 'text-muted-foreground',
       )}
-      {status === 'reconnecting' && (
-        <span className="inline-flex items-center gap-1.5 text-primary">
-          <span className="size-2 rounded-full bg-primary" />
-          <span>Reconnecting…</span>
-        </span>
-      )}
-      {status === 'failed' && (
-        <span className="inline-flex items-center gap-1.5 text-destructive">
-          <span className="size-2 rounded-full bg-destructive" />
-          <span>Live updates paused</span>
-        </span>
-      )}
-      {status === 'disconnected' && (
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-muted-foreground" />
-        </span>
+    >
+      <span
+        className={cn('size-2 rounded-full', dotColor[status])}
+        title={statusCopy[status]}
+      />
+      <span className="font-medium">{statusCopy[status]}</span>
+      {!compact && status === 'failed' && (
+        <span className="text-destructive">· Live updates paused</span>
       )}
     </div>
   );

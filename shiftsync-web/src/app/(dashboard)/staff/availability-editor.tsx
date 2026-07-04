@@ -4,13 +4,8 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { FormSheet } from '@/components/dashboard/form-sheet';
+import { FormSelect } from '@/components/dashboard/filter-select';
 import { apiClient } from '@/lib/api/client/client';
 import { queryKeys } from '@/lib/query-keys';
 import type { AvailabilityWindow, AvailabilityException } from '@/lib/api/server/availability';
@@ -302,48 +297,53 @@ function ExceptionsSection({ userId, exceptions }: { userId: string; exceptions:
         ))}
       </ul>
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Add date exception</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Date *</label>
-              <Input type="date" value={form.exceptionDate} onChange={(e) => setForm((f) => ({ ...f, exceptionDate: e.target.value }))} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Available on this date?</label>
-              <select
-                className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
-                value={form.isAvailable ? 'yes' : 'no'}
-                onChange={(e) => setForm((f) => ({ ...f, isAvailable: e.target.value === 'yes' }))}
-              >
-                <option value="no">No — blocked (unavailable all day)</option>
-                <option value="yes">Yes — available (optionally specify hours)</option>
-              </select>
-            </div>
-            {form.isAvailable && (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Start time</label>
-                  <Input type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">End time</label>
-                  <Input type="time" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
-                </div>
-              </div>
-            )}
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Reason (optional)</label>
-              <Input value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} placeholder="e.g. doctor's appointment" />
-            </div>
-          </div>
-          <DialogFooter>
+      <FormSheet
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        title="Add date exception"
+        size="md"
+        footer={
+          <>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
             <Button onClick={onAdd} disabled={saving}>Add exception</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Date *</label>
+            <Input type="date" value={form.exceptionDate} onChange={(e) => setForm((f) => ({ ...f, exceptionDate: e.target.value }))} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Available on this date?</label>
+            <FormSelect
+              value={form.isAvailable ? 'yes' : 'no'}
+              onValueChange={(v) => setForm((f) => ({ ...f, isAvailable: v === 'yes' }))}
+              placeholder="Select availability"
+              options={[
+                { value: 'no', label: 'No — blocked (unavailable all day)' },
+                { value: 'yes', label: 'Yes — available (optionally specify hours)' },
+              ]}
+            />
+          </div>
+          {form.isAvailable && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Start time</label>
+                <Input type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">End time</label>
+                <Input type="time" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
+              </div>
+            </div>
+          )}
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Reason (optional)</label>
+            <Input value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} placeholder="e.g. doctor's appointment" />
+          </div>
+        </div>
+      </FormSheet>
     </div>
   );
 }
