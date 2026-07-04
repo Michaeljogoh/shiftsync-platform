@@ -172,7 +172,9 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(0,237,100,0.12),transparent)]"
           aria-hidden
         />
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 pb-32 pt-20 sm:px-8 sm:pt-24 lg:grid-cols-2 lg:items-center lg:gap-16 lg:pb-40 lg:pt-28">
+
+
+        <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl gap-12 px-4 pb-20 pt-20 sm:px-8 sm:pt-24 lg:grid-cols-2 lg:items-center lg:gap-16 lg:pt-[35vh]">
           <motion.div
             initial={reduceMotion ? false : "hidden"}
             animate="visible"
@@ -232,6 +234,8 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
             <SchedulePreview />
           </motion.div>
         </div>
+
+
       </section>
 
       {/* Logo wall */}
