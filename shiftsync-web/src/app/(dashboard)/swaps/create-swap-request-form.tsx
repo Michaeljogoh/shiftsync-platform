@@ -1,19 +1,14 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { FormSheet } from '@/components/dashboard/form-sheet';
+import { FormSelectField } from '@/components/dashboard/form-select-field';
+import { FormSelect } from '@/components/dashboard/filter-select';
 import { Label } from '@/components/ui/label';
 import { apiClient } from '@/lib/api/client/client';
 import { queryKeys } from '@/lib/query-keys';
@@ -21,6 +16,9 @@ import {
   createSwapRequestSchema,
   type CreateSwapRequestInput,
 } from '@/lib/validations/swaps';
+
+const primaryBtnClass =
+  'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
 
 export interface AssignmentOption {
   id: string;
@@ -55,6 +53,7 @@ export function CreateSwapRequestForm({
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<CreateSwapRequestInput>({
@@ -93,99 +92,93 @@ export function CreateSwapRequestForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>New swap or drop request</DialogTitle>
-          <DialogDescription>
-            Choose an assignment to give up, and for swaps pick who will take it.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <div className="grid gap-2">
-            <Label>Type</Label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
-                <input type="radio" value="drop" {...register('type')} />
-                <span>Drop</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="radio" value="swap" {...register('type')} />
-                <span>Swap</span>
-              </label>
-            </div>
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="New swap or drop request"
+      description="Choose an assignment to give up, and for swaps pick who will take it."
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" form="create-swap-form" disabled={isSubmitting} className={primaryBtnClass}>
+            {isSubmitting ? 'Submitting…' : 'Submit request'}
+          </Button>
+        </>
+      }
+    >
+      <form id="create-swap-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+        <div className="grid gap-2">
+          <Label>Type</Label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2">
+              <input type="radio" value="drop" {...register('type')} />
+              <span>Drop</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" value="swap" {...register('type')} />
+              <span>Swap</span>
+            </label>
           </div>
+        </div>
 
+        <FormSelectField
+          control={control}
+          name="initiatorAssignmentId"
+          label="My assignment to give up"
+          placeholder="Select assignment"
+          options={myAssignments.map((a) => ({
+            value: a.id,
+            label: `${a.shift?.title ?? 'Shift'} · ${a.shift?.startAt ? new Date(a.shift.startAt).toLocaleString() : a.id}`,
+          }))}
+          error={errors.initiatorAssignmentId?.message}
+        />
+
+        {type === 'swap' && (
           <div className="grid gap-2">
-            <Label htmlFor="initiatorAssignmentId">My assignment to give up</Label>
-            <select
-              id="initiatorAssignmentId"
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-              {...register('initiatorAssignmentId')}
-            >
-              <option value="">Select assignment</option>
-              {myAssignments.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.shift?.title ?? 'Shift'} · {a.shift?.startAt ? new Date(a.shift.startAt).toLocaleString() : a.id}
-                </option>
-              ))}
-            </select>
-            {errors.initiatorAssignmentId && (
-              <p className="text-xs text-destructive">{errors.initiatorAssignmentId.message}</p>
-            )}
-          </div>
-
-          {type === 'swap' && (
-            <div className="grid gap-2">
-              <Label htmlFor="targetAssignmentId">Swap with (staff + assignment)</Label>
-              <select
-                id="targetAssignmentId"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-                {...register('targetAssignmentId', {
-                  onChange: (e) => {
-                    const opt = targetAssignments.find((t) => t.assignmentId === e.target.value);
+            <Label htmlFor="targetAssignmentId">Swap with (staff + assignment)</Label>
+            <Controller
+              control={control}
+              name="targetAssignmentId"
+              render={({ field }) => (
+                <FormSelect
+                  id="targetAssignmentId"
+                  value={field.value ?? ''}
+                  onValueChange={(v) => {
+                    field.onChange(v);
+                    const opt = targetAssignments.find((t) => t.assignmentId === v);
                     if (opt) {
                       setValue('targetUserId', opt.userId);
                     }
-                  },
-                })}
-              >
-                <option value="">Select staff / assignment</option>
-                {targetAssignments.map((t) => (
-                  <option key={t.assignmentId} value={t.assignmentId}>
-                    {t.userName} · {t.shiftLabel}
-                  </option>
-                ))}
-              </select>
-              {errors.targetUserId && (
-                <p className="text-xs text-destructive">{errors.targetUserId.message}</p>
+                  }}
+                  placeholder="Select staff / assignment"
+                  options={targetAssignments.map((t) => ({
+                    value: t.assignmentId,
+                    label: `${t.userName} · ${t.shiftLabel}`,
+                  }))}
+                />
               )}
-              {errors.targetAssignmentId && (
-                <p className="text-xs text-destructive">{errors.targetAssignmentId.message}</p>
-              )}
-            </div>
-          )}
-
-          <div className="grid gap-2">
-            <Label htmlFor="initiatorNote">Note (optional)</Label>
-            <textarea
-              id="initiatorNote"
-              className="min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-              maxLength={500}
-              {...register('initiatorNote')}
             />
+            {errors.targetUserId && (
+              <p className="text-xs text-destructive">{errors.targetUserId.message}</p>
+            )}
+            {errors.targetAssignmentId && (
+              <p className="text-xs text-destructive">{errors.targetAssignmentId.message}</p>
+            )}
           </div>
+        )}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting…' : 'Submit request'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <div className="grid gap-2">
+          <Label htmlFor="initiatorNote">Note (optional)</Label>
+          <textarea
+            id="initiatorNote"
+            className="min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+            maxLength={500}
+            {...register('initiatorNote')}
+          />
+        </div>
+      </form>
+    </FormSheet>
   );
 }

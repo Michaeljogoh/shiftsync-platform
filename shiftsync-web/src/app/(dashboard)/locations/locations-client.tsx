@@ -6,34 +6,32 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { DetailSheet, FormSheet } from '@/components/dashboard/form-sheet';
+import { SheetSection } from '@/components/dashboard/sheet-layout';
+import { FormSelect } from '@/components/dashboard/filter-select';
+import { FormSelectField } from '@/components/dashboard/form-select-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { SheetDescription, SheetTitle } from '@/components/ui/sheet';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { DashboardCard } from '@/components/dashboard/dashboard-card';
 import { apiClient } from '@/lib/api/client/client';
 import { RoleGate } from '@/components/shared/RoleGate';
 import { FullPageError } from '@/components/shared/FullPageError';
 import { PaginationControls, usePagination } from '@/components/shared/PaginationControls';
 import {
-  MapPinIcon,
   PencilIcon,
   PlusIcon,
   Trash2Icon,
-  UsersIcon,
   UserPlusIcon,
   UserMinusIcon,
   GlobeIcon,
 } from 'lucide-react';
+
+const primaryBtnClass =
+  'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
 
 const IANA_TIMEZONES = [
   'America/New_York',
@@ -147,6 +145,7 @@ export function LocationsClient() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<LocationForm>({
     resolver: zodResolver(locationSchema),
@@ -157,6 +156,7 @@ export function LocationsClient() {
     register: registerEdit,
     handleSubmit: handleEditSubmit,
     reset: resetEdit,
+    control: editControl,
     formState: { errors: editErrors, isSubmitting: editSubmitting },
   } = useForm<LocationForm>({ resolver: zodResolver(locationSchema) });
 
@@ -236,10 +236,8 @@ export function LocationsClient() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">Locations</h1>
-        </div>
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <PageHeader title="Locations" description="Manage restaurant locations, managers, and certified staff." />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
         </div>
@@ -252,253 +250,296 @@ export function LocationsClient() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold text-foreground">Locations</h1>
-        <RoleGate role={['admin']}>
-          <Button size="sm" className="min-h-[44px] sm:min-h-0" onClick={() => setCreateOpen(true)}>
-            <PlusIcon className="mr-1.5 size-4" /> Add location
-          </Button>
-        </RoleGate>
-      </div>
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <PageHeader
+        title="Locations"
+        description="Manage restaurant locations, managers, and certified staff."
+        actions={
+          <RoleGate role={['admin']}>
+            <Button size="sm" className={`min-h-[44px] sm:min-h-0 ${primaryBtnClass}`} onClick={() => setCreateOpen(true)}>
+              <PlusIcon className="mr-1.5 size-4" /> Add location
+            </Button>
+          </RoleGate>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {pagedLocations.map((loc) => (
-          <Card
+          <DashboardCard
             key={loc.id}
-            className="border-border bg-card cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => { setDetailLocation(loc); setStaffSheetPage(1); }}
-          >
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-base text-foreground flex items-center gap-2">
-                  <MapPinIcon className="size-4 text-muted-foreground shrink-0" />
-                  {loc.name}
-                </CardTitle>
-                <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <RoleGate role={['admin']}>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(loc)}>
-                      <PencilIcon className="size-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => setDeleteConfirm(loc)}>
-                      <Trash2Icon className="size-3.5" />
-                    </Button>
-                  </RoleGate>
-                </div>
+            title={loc.name}
+            hoverable
+            className="cursor-pointer"
+            action={
+              <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                <RoleGate role={['admin']}>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(loc)}>
+                    <PencilIcon className="size-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => setDeleteConfirm(loc)}>
+                    <Trash2Icon className="size-3.5" />
+                  </Button>
+                </RoleGate>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
+            }
+          >
+            <div
+              className="space-y-2 cursor-pointer"
+              onClick={() => { setDetailLocation(loc); setStaffSheetPage(1); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setDetailLocation(loc); setStaffSheetPage(1); } }}
+              role="button"
+              tabIndex={0}
+            >
               {loc.address && (
-                <p className="text-xs text-muted-foreground truncate">{loc.address}</p>
+                <p className="text-xs text-landing-steel truncate">{loc.address}</p>
               )}
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-xs text-landing-steel">
                 <GlobeIcon className="size-3" />
                 {loc.ianaTimezone}
               </div>
               <Badge variant={loc.isActive ? 'default' : 'secondary'} className="text-xs">
                 {loc.isActive ? 'Active' : 'Inactive'}
               </Badge>
-            </CardContent>
-          </Card>
+            </div>
+          </DashboardCard>
         ))}
       </div>
       <PaginationControls currentPage={locPage} totalPages={locTotalPages} onPageChange={setLocPage} />
 
       {/* Detail Sheet */}
-      <Sheet open={!!detailLocation} onOpenChange={(open) => !open && setDetailLocation(null)}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          {detailLocation && (
-            <div className="space-y-5 p-5 pt-6">
-
-
-              <div className='px-0'>
-                <SheetTitle className="flex items-center gap-2">
-             
-                </SheetTitle>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            
+      <DetailSheet
+        open={!!detailLocation}
+        onOpenChange={(open) => !open && setDetailLocation(null)}
+        size="detail"
+        header={
+          detailLocation ? (
+            <div>
+              <SheetTitle className="text-xl">{detailLocation.name}</SheetTitle>
+              <SheetDescription className="mt-1 flex flex-wrap items-center gap-2">
+                <GlobeIcon className="size-3.5 shrink-0" />
+                {detailLocation.ianaTimezone}
+                <Badge variant={detailLocation.isActive ? 'default' : 'secondary'} className="ml-1">
+                  {detailLocation.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+              </SheetDescription>
+              {detailLocation.address && (
+                <p className="mt-2 text-sm text-landing-steel">{detailLocation.address}</p>
+              )}
+            </div>
+          ) : null
+        }
+      >
+        {detailLocation && (
+          <div className="flex flex-col gap-4">
+            <SheetSection
+              title="Managers"
+              description="People who can manage this location."
+              action={
+                <RoleGate role={['admin']}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 rounded-full text-xs"
+                    onClick={() => setAddManagerOpen(true)}
+                  >
+                    <UserPlusIcon className="mr-1 size-3.5" /> Add
+                  </Button>
+                </RoleGate>
+              }
+            >
+              {managersLoading ? (
+                <div className="flex flex-col gap-2">
+                  {[1, 2].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full rounded-xl" />
+                  ))}
                 </div>
-                {detailLocation.address && (
-                  <p className="text-sm text-muted-foreground">{detailLocation.address}</p>
-                )}
-              </div>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {locationManagers.map((m) => (
+                    <li
+                      key={m.id}
+                      className="flex items-center justify-between rounded-xl border border-landing-hairline bg-landing-surface/50 px-4 py-3 transition-colors hover:border-brand-green/20 hover:bg-brand-green/[0.03]"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-brand-teal-deep">
+                          {m.firstName} {m.lastName}
+                        </p>
+                        <p className="truncate text-xs text-landing-steel">{m.email}</p>
+                      </div>
+                      <RoleGate role={['admin']}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="size-8 shrink-0 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => onRemoveManager(m.id)}
+                          disabled={actioning}
+                        >
+                          <UserMinusIcon className="size-4" />
+                        </Button>
+                      </RoleGate>
+                    </li>
+                  ))}
+                  {locationManagers.length === 0 && (
+                    <p className="text-sm text-landing-steel">No managers assigned.</p>
+                  )}
+                </ul>
+              )}
+            </SheetSection>
 
-              {/* Managers section */}
-              <div className="space-y-2 pt-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">Managers</h3>
-                  <RoleGate role={['admin']}>
-                    <Button size="sm" variant="default" className="h-7 text-xs  cursor-pointer" onClick={() => setAddManagerOpen(true)}>
-                      <UserPlusIcon className="mr-1 size-3" /> Add
-                    </Button>
-                  </RoleGate>
+            <SheetSection
+              title="Certified staff"
+              description="Team members approved to work at this location."
+            >
+              {staffLoading ? (
+                <div className="flex flex-col gap-2">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full rounded-xl" />
+                  ))}
                 </div>
-                {managersLoading ? (
-                  <div className="space-y-1">{[1, 2].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
-                ) : (
-                  <ul className="space-y-1">
-                    {locationManagers.map((m) => (
-                        <li key={m.id} className="flex items-center justify-between rounded-md border border-border px-3 py-1.5">
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{m.firstName} {m.lastName}</p>
-                            <p className="text-xs text-muted-foreground">{m.email}</p>
-                          </div>
-                          <RoleGate role={['admin']}>
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => onRemoveManager(m.id)} disabled={actioning}>
-                              <UserMinusIcon className="size-3.5" />
-                            </Button>
-                          </RoleGate>
-                        </li>
-                      ))}
-                    {locationManagers.length === 0 && (
-                      <li className="text-sm text-muted-foreground py-2">No managers assigned</li>
+              ) : (
+                <>
+                  <ul className="flex flex-col gap-2">
+                    {pagedSheetStaff.map((s) => (
+                      <li
+                        key={s.id}
+                        className="flex items-center gap-3 rounded-xl border border-landing-hairline bg-landing-surface/50 px-4 py-3 transition-colors hover:border-brand-green/20 hover:bg-brand-green/[0.03]"
+                      >
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-green/15 text-xs font-semibold text-brand-green-dark">
+                          {s.firstName[0]}
+                          {s.lastName[0]}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-brand-teal-deep">
+                            {s.firstName} {s.lastName}
+                          </p>
+                          <p className="truncate text-xs text-landing-steel">{s.email}</p>
+                        </div>
+                      </li>
+                    ))}
+                    {filteredStaff.length === 0 && (
+                      <p className="text-sm text-landing-steel">No certified staff.</p>
                     )}
                   </ul>
-                )}
-              </div>
+                  <PaginationControls
+                    currentPage={staffSheetPage}
+                    totalPages={sheetStaffPages}
+                    onPageChange={setStaffSheetPage}
+                  />
+                </>
+              )}
+            </SheetSection>
+          </div>
+        )}
+      </DetailSheet>
 
-              {/* Staff section */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <UsersIcon className="size-4 text-muted-foreground" />
-                  <h3 className="text-sm font-semibold text-foreground">Certified Staff</h3>
-                </div>
-                {staffLoading ? (
-                  <div className="space-y-1">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
-                ) : (
-                  <>
-                    <ul className="space-y-1">
-                      {pagedSheetStaff.map((s) => (
-                        <li key={s.id} className="flex items-center gap-3 rounded-md border border-border px-3 py-1.5">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
-                            {s.firstName[0]}{s.lastName[0]}
-                          </div>
-                          <div>
-                            <p className="text-sm text-foreground">{s.firstName} {s.lastName}</p>
-                            <p className="text-xs text-muted-foreground">{s.email}</p>
-                          </div>
-                        </li>
-                      ))}
-                      {filteredStaff.length === 0 && (
-                        <li className="text-sm text-muted-foreground py-2">No certified staff</li>
-                      )}
-                    </ul>
-                    <PaginationControls currentPage={staffSheetPage} totalPages={sheetStaffPages} onPageChange={setStaffSheetPage} />
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
+      {/* Create */}
+      <FormSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="Add location"
+        description="Create a new Coastal Eats location."
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button type="submit" form="create-location-form" disabled={isSubmitting} className={primaryBtnClass}>Create</Button>
+          </>
+        }
+      >
+        <form id="create-location-form" onSubmit={handleSubmit(onCreate)} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Name *</label>
+            <Input {...register('name')} placeholder="Coastal Eats Downtown" />
+            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Address</label>
+            <Input {...register('address')} placeholder="123 Main St, New York, NY" />
+          </div>
+          <FormSelectField
+            control={control}
+            name="ianaTimezone"
+            label="Timezone *"
+            placeholder="Select timezone"
+            options={IANA_TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
+            error={errors.ianaTimezone?.message}
+          />
+        </form>
+      </FormSheet>
 
-      {/* Create Dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add location</DialogTitle>
-            <DialogDescription>Create a new Coastal Eats location.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onCreate)} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Name *</label>
-              <Input {...register('name')} placeholder="Coastal Eats Downtown" />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Address</label>
-              <Input {...register('address')} placeholder="123 Main St, New York, NY" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Timezone *</label>
-              <select className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground" {...register('ianaTimezone')}>
-                {IANA_TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-              {errors.ianaTimezone && <p className="text-xs text-destructive">{errors.ianaTimezone.message}</p>}
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting}>Create</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editLocation} onOpenChange={(open) => !open && setEditLocation(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit location</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEditSubmit(onEdit)} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Name *</label>
-              <Input {...registerEdit('name')} />
-              {editErrors.name && <p className="text-xs text-destructive">{editErrors.name.message}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Address</label>
-              <Input {...registerEdit('address')} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Timezone *</label>
-              <select className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground" {...registerEdit('ianaTimezone')}>
-                {IANA_TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditLocation(null)}>Cancel</Button>
-              <Button type="submit" disabled={editSubmitting}>Save changes</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Edit */}
+      <FormSheet
+        open={!!editLocation}
+        onOpenChange={(open) => !open && setEditLocation(null)}
+        title="Edit location"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setEditLocation(null)}>Cancel</Button>
+            <Button type="submit" form="edit-location-form" disabled={editSubmitting} className={primaryBtnClass}>Save changes</Button>
+          </>
+        }
+      >
+        <form id="edit-location-form" onSubmit={handleEditSubmit(onEdit)} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Name *</label>
+            <Input {...registerEdit('name')} />
+            {editErrors.name && <p className="text-xs text-destructive">{editErrors.name.message}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Address</label>
+            <Input {...registerEdit('address')} />
+          </div>
+          <FormSelectField
+            control={editControl}
+            name="ianaTimezone"
+            label="Timezone *"
+            placeholder="Select timezone"
+            options={IANA_TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
+            error={editErrors.ianaTimezone?.message}
+          />
+        </form>
+      </FormSheet>
 
       {/* Delete confirm */}
-      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete location?</DialogTitle>
-            <DialogDescription>
-              This will permanently delete <strong>{deleteConfirm?.name}</strong>. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <FormSheet
+        open={!!deleteConfirm}
+        onOpenChange={(open) => !open && setDeleteConfirm(null)}
+        title="Delete location?"
+        description={`This will permanently delete ${deleteConfirm?.name}. This cannot be undone.`}
+        footer={
+          <>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
             <Button variant="destructive" onClick={onDelete} disabled={actioning}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <></>
+      </FormSheet>
 
-      {/* Add Manager Dialog */}
-      <Dialog open={addManagerOpen} onOpenChange={setAddManagerOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add manager to {detailLocation?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-foreground">Select manager</label>
-            <select
-              className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
-              value={selectedManagerId}
-              onChange={(e) => setSelectedManagerId(e.target.value)}
-            >
-              <option value="">— Choose —</option>
-              {managerUsers.map((u) => (
-                <option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.email})</option>
-              ))}
-            </select>
-          </div>
-          <DialogFooter>
+      {/* Add Manager */}
+      <FormSheet
+        open={addManagerOpen}
+        onOpenChange={setAddManagerOpen}
+        title={`Add manager to ${detailLocation?.name}`}
+        footer={
+          <>
             <Button variant="outline" onClick={() => setAddManagerOpen(false)}>Cancel</Button>
-            <Button onClick={onAddManager} disabled={!selectedManagerId || actioning}>Add</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button onClick={onAddManager} disabled={!selectedManagerId || actioning} className={primaryBtnClass}>Add</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-foreground">Select manager</label>
+          <FormSelect
+            value={selectedManagerId}
+            onValueChange={setSelectedManagerId}
+            placeholder="— Choose —"
+            options={managerUsers.map((u) => ({
+              value: u.id,
+              label: `${u.firstName} ${u.lastName} (${u.email})`,
+            }))}
+          />
+        </div>
+      </FormSheet>
     </div>
   );
 }

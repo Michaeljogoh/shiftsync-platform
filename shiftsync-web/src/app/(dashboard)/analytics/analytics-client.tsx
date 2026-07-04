@@ -18,13 +18,6 @@ import {
   Radar,
   Legend,
 } from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { apiClient } from "@/lib/api/client/client";
@@ -37,6 +30,23 @@ import {
   PaginationControls,
   usePagination,
 } from "@/components/shared/PaginationControls";
+import { FilterSelect } from "@/components/dashboard/filter-select";
+import { FilterBar } from "@/components/dashboard/filter-bar";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  CHART_COLORS,
+  chartAxisStyle,
+  chartTooltipStyle,
+} from "@/components/dashboard/chart-theme";
 import type { LocationSummary } from "@/lib/api/server/locations";
 import { AlertTriangleIcon, TrendingUpIcon, StarIcon } from "lucide-react";
 
@@ -120,50 +130,47 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
 
   if (role === "staff") {
     return (
-      <div className="space-y-4">
-        <h1 className="text-lg font-semibold text-foreground">Analytics</h1>
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-base">My weekly hours</CardTitle>
-            <CardDescription>
-              Projected hours for the selected week (based on your scheduled
-              assignments).
-            </CardDescription>
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <PageHeader title="Analytics" description="Track your weekly hours and schedule load." />
+        <DashboardCard
+          title="My weekly hours"
+          description="Projected hours for the selected week (based on your scheduled assignments)."
+          hoverable
+          action={
             <input
               type="date"
-              className="mt-2 w-fit rounded border border-input bg-background px-2 py-1 text-sm text-foreground"
+              className="rounded border border-input bg-background px-2 py-1 text-sm text-foreground"
               value={weekStart}
               onChange={(e) => setWeekStart(getWeekStart(new Date(e.target.value)))}
             />
-          </CardHeader>
-          <CardContent>
-            {myAssignmentsLoading ? (
-              <Skeleton className="h-10 w-40" />
-            ) : (
-              <div className="flex items-end gap-3">
-                <p className="text-3xl font-bold text-foreground">
-                  {myProjectedHours}h
-                </p>
-                <Badge
-                  variant={
-                    myProjectedHours >= 40
-                      ? "destructive"
-                      : myProjectedHours >= 35
-                        ? "secondary"
-                        : "outline"
-                  }
-                  className="mb-1"
-                >
-                  {myProjectedHours >= 40
-                    ? "Over 40h"
+          }
+        >
+          {myAssignmentsLoading ? (
+            <Skeleton className="h-10 w-40" />
+          ) : (
+            <div className="flex items-end gap-3">
+              <p className="text-3xl font-bold text-brand-teal-deep">
+                {myProjectedHours}h
+              </p>
+              <Badge
+                variant={
+                  myProjectedHours >= 40
+                    ? "destructive"
                     : myProjectedHours >= 35
-                      ? "Approaching 40h"
-                      : "Normal"}
-                </Badge>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      ? "secondary"
+                      : "outline"
+                }
+                className="mb-1"
+              >
+                {myProjectedHours >= 40
+                  ? "Over 40h"
+                  : myProjectedHours >= 35
+                    ? "Approaching 40h"
+                    : "Normal"}
+              </Badge>
+            </div>
+          )}
+        </DashboardCard>
       </div>
     );
   }
@@ -288,8 +295,8 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
 
   if (overtimeLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-lg font-semibold text-foreground">Analytics</h1>
+      <div className="mx-auto max-w-[1400px] space-y-8">
+        <PageHeader title="Analytics" description="Workforce insights, overtime tracking, and fairness reporting." />
         <AnalyticsSkeleton />
       </div>
     );
@@ -311,40 +318,29 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
   );
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-lg font-semibold text-foreground">Analytics</h1>
+    <div className="mx-auto max-w-[1400px] space-y-8">
+      <PageHeader title="Analytics" description="Workforce insights, overtime tracking, and fairness reporting." />
 
-      <div className="flex flex-wrap gap-3">
-        <select
-          className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+      <FilterBar>
+        <FilterSelect
           value={locationId}
-          onChange={(e) => {
-            setLocationId(e.target.value);
+          onValueChange={(v) => {
+            setLocationId(v);
             setUnderstaffedPage(1);
             setOvertimePage(1);
           }}
-        >
-          <option value="">All locations</option>
-          {locations.map((loc) => (
-            <option key={loc.id} value={loc.id}>
-              {loc.name}
-            </option>
-          ))}
-        </select>
-      </div>
+          placeholder="All locations"
+          options={locations.map((loc) => ({ value: loc.id, label: loc.name }))}
+        />
+      </FilterBar>
 
       {/* Understaffed shifts */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <AlertTriangleIcon className="size-4 text-amber-500" />
-            Understaffed shifts (next 7 days)
-          </CardTitle>
-          <CardDescription>
-            Published shifts that don&apos;t have full headcount
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <DashboardCard
+        title="Understaffed shifts (next 7 days)"
+        description="Published shifts that don't have full headcount"
+        hoverable
+        action={<AlertTriangleIcon className="size-4 text-amber-500" />}
+      >
           {understaffedLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
@@ -352,7 +348,7 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
               ))}
             </div>
           ) : understaffed.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-landing-steel">
               All shifts fully staffed.
             </p>
           ) : (
@@ -363,7 +359,7 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                     key={s.shiftId}
                     className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900 dark:bg-amber-950/30"
                   >
-                    <span className="text-sm font-medium text-foreground">
+                    <span className="text-sm font-medium text-brand-teal-deep">
                       {s.title}
                     </span>
                     <Badge
@@ -382,32 +378,30 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
               />
             </>
           )}
-        </CardContent>
-      </Card>
+      </DashboardCard>
 
       {/* Overtime */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+      <DashboardCard
+        title="Overtime dashboard"
+        description="Projected hours this week. Red ≥40h, amber ≥35h."
+        hoverable
+        action={
+          <>
             <TrendingUpIcon className="size-4 text-destructive" />
-            Overtime dashboard
-          </CardTitle>
-          <CardDescription>
-            Projected hours this week. Red ≥40h, amber ≥35h.
-          </CardDescription>
-          <input
-            type="date"
-            className="mt-2 rounded border border-input bg-background px-2 py-1 text-sm text-foreground"
-            value={weekStart}
-            onChange={(e) => {
-              setWeekStart(getWeekStart(new Date(e.target.value)));
-              setOvertimePage(1);
-            }}
-          />
-        </CardHeader>
-        <CardContent>
+            <input
+              type="date"
+              className="rounded border border-input bg-background px-2 py-1 text-sm text-foreground"
+              value={weekStart}
+              onChange={(e) => {
+                setWeekStart(getWeekStart(new Date(e.target.value)));
+                setOvertimePage(1);
+              }}
+            />
+          </>
+        }
+      >
           {overtimeWithCost.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-landing-steel">
               No staff over 35h this week.
             </p>
           ) : (
@@ -419,17 +413,18 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    className="stroke-border"
+                    stroke={CHART_COLORS.grid}
                   />
                   <XAxis
                     dataKey="name"
-                    tick={{ fontSize: 10 }}
+                    tick={chartAxisStyle.tick}
+                    axisLine={chartAxisStyle.axisLine}
                     angle={-30}
                     textAnchor="end"
                   />
-                  <YAxis tick={{ fontSize: 10 }} />
+                  <YAxis tick={chartAxisStyle.tick} axisLine={chartAxisStyle.axisLine} />
                   <Tooltip
-                    contentStyle={{ fontSize: 12, borderRadius: 6 }}
+                    {...chartTooltipStyle}
                     formatter={(v: number, name: string) => [
                       name === "projectedHours" ? `${v}h` : `$${v.toFixed(0)}`,
                       name === "projectedHours" ? "Projected hrs" : "OT cost",
@@ -462,10 +457,10 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                           key={idx}
                           fill={
                             row.projectedHours >= 40
-                              ? "oklch(var(--destructive))"
+                              ? CHART_COLORS.accentOrange
                               : row.projectedHours >= 35
                                 ? "#f59e0b"
-                                : "oklch(var(--primary))"
+                                : CHART_COLORS.primary
                           }
                         />
                       ),
@@ -473,43 +468,39 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                      <th className="py-1">Staff</th>
-                      <th className="py-1">Scheduled</th>
-                      <th className="py-1">OT hrs</th>
-                      <th className="py-1">Est. cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {overtimePagination
-                      .paginate(overtimePage)
-                      .map(
-                        (row) => (
-                          <tr
-                            key={row.userId}
-                            className={`border-b border-border ${row.projectedHours >= 40 ? "bg-destructive/10" : row.projectedHours >= 35 ? "bg-amber-50 dark:bg-amber-950/20" : ""}`}
-                          >
-                            <td className="py-1.5 text-foreground">
-                              {row.name}
-                            </td>
-                            <td className="py-1.5">{row.projectedHours}h</td>
-                            <td className="py-1.5">
-                              {row.overtimeHours > 0
-                                ? `${row.overtimeHours}h`
-                                : "—"}
-                            </td>
-                            <td className="py-1.5">
-                              {row.cost > 0 ? `$${row.cost.toFixed(0)}` : "—"}
-                            </td>
-                          </tr>
-                        ),
-                      )}
-                  </tbody>
-                </table>
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Staff</TableHead>
+                    <TableHead>Scheduled</TableHead>
+                    <TableHead>OT hrs</TableHead>
+                    <TableHead>Est. cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {overtimePagination
+                    .paginate(overtimePage)
+                    .map(
+                      (row) => (
+                        <TableRow
+                          key={row.userId}
+                          className={row.projectedHours >= 40 ? "bg-destructive/10" : row.projectedHours >= 35 ? "bg-amber-50 dark:bg-amber-950/20" : ""}
+                        >
+                          <TableCell>{row.name}</TableCell>
+                          <TableCell>{row.projectedHours}h</TableCell>
+                          <TableCell>
+                            {row.overtimeHours > 0
+                              ? `${row.overtimeHours}h`
+                              : "—"}
+                          </TableCell>
+                          <TableCell>
+                            {row.cost > 0 ? `$${row.cost.toFixed(0)}` : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ),
+                    )}
+                </TableBody>
+              </Table>
               <PaginationControls
                 currentPage={overtimePage}
                 totalPages={overtimePagination.totalPages}
@@ -517,15 +508,15 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
               />
             </div>
           )}
-        </CardContent>
-      </Card>
+      </DashboardCard>
 
       {/* Hours distribution */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="text-base">Hours distribution</CardTitle>
-          <CardDescription>Total hours per staff in date range</CardDescription>
-          <div className="mt-2 flex gap-2">
+      <DashboardCard
+        title="Hours distribution"
+        description="Total hours per staff in date range"
+        hoverable
+        action={
+          <div className="flex gap-2">
             <input
               type="date"
               className="rounded border border-input bg-background px-2 py-1 text-sm text-foreground"
@@ -543,8 +534,8 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
               }
             />
           </div>
-        </CardHeader>
-        <CardContent>
+        }
+      >
           {hoursLoading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -552,7 +543,7 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
               ))}
             </div>
           ) : hoursDist.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-landing-steel">
               No data for this range.
             </p>
           ) : (
@@ -568,17 +559,18 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    className="stroke-border"
+                    stroke={CHART_COLORS.grid}
                   />
-                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <XAxis type="number" tick={chartAxisStyle.tick} axisLine={chartAxisStyle.axisLine} />
                   <YAxis
                     type="category"
                     dataKey="name"
-                    tick={{ fontSize: 10 }}
+                    tick={chartAxisStyle.tick}
+                    axisLine={chartAxisStyle.axisLine}
                     width={80}
                   />
                   <Tooltip
-                    contentStyle={{ fontSize: 12 }}
+                    {...chartTooltipStyle}
                     formatter={(v: number) => [`${v}h`, "Hours"]}
                   />
                   <ReferenceLine
@@ -589,7 +581,7 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                   <Bar
                     dataKey="totalHours"
                     radius={[0, 4, 4, 0]}
-                    fill="oklch(var(--primary) / 0.75)"
+                    fill={CHART_COLORS.primary}
                   >
                     {(hoursDist as { totalHours: number }[]).map(
                       (_: unknown, idx: number) => (
@@ -598,11 +590,11 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                           fill={
                             (hoursDist as { totalHours: number }[])[idx]
                               .totalHours >= 40
-                              ? "oklch(var(--destructive) / 0.7)"
+                              ? CHART_COLORS.accentOrange
                               : (hoursDist as { totalHours: number }[])[idx]
                                     .totalHours >= 35
-                                ? "oklch(var(--primary) / 0.35)"
-                                : "oklch(var(--primary) / 0.75)"
+                                ? CHART_COLORS.primarySoft
+                                : CHART_COLORS.primary
                           }
                         />
                       ),
@@ -612,70 +604,63 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
               </ResponsiveContainer>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </DashboardCard>
 
       {/* Fairness */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+      <DashboardCard
+        title="Fairness report"
+        description="Premium shift distribution equity across staff"
+        hoverable
+        action={
+          <>
             <StarIcon className="size-4 text-amber-400" />
-            Fairness report
-          </CardTitle>
-          <CardDescription>
-            Premium shift distribution equity across staff
-          </CardDescription>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <select
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
-              value={fairnessLocationId}
-              onChange={(e) => {
-                setFairnessLocationId(e.target.value);
-                setFairnessPage(1);
-              }}
-            >
-              <option value="">First location</option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
-              value={selectedStaffId}
-              onChange={(e) => setSelectedStaffId(e.target.value)}
-            >
-              <option value="">All staff</option>
-              {(fairness?.staff ?? []).map(
-                (s: { userId: string; name: string }) => (
-                  <option key={s.userId} value={s.userId}>
-                    {s.name}
-                  </option>
-                ),
-              )}
-            </select>
-            <input
-              type="date"
-              className="rounded border border-input bg-background px-2 py-1 text-sm text-foreground"
-              value={fairnessPeriod.startDate}
-              onChange={(e) => {
-                setFairnessPeriod((p) => ({ ...p, startDate: e.target.value }));
-                setFairnessPage(1);
-              }}
-            />
-            <input
-              type="date"
-              className="rounded border border-input bg-background px-2 py-1 text-sm text-foreground"
-              value={fairnessPeriod.endDate}
-              onChange={(e) => {
-                setFairnessPeriod((p) => ({ ...p, endDate: e.target.value }));
-                setFairnessPage(1);
-              }}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <FilterSelect
+                value={fairnessLocationId}
+                onValueChange={(v) => {
+                  setFairnessLocationId(v);
+                  setFairnessPage(1);
+                }}
+                placeholder="First location"
+                options={locations.map((loc) => ({ value: loc.id, label: loc.name }))}
+                className="min-w-0"
+                triggerClassName="sm:min-w-[9rem]"
+              />
+              <FilterSelect
+                value={selectedStaffId}
+                onValueChange={setSelectedStaffId}
+                placeholder="All staff"
+                options={(fairness?.staff ?? []).map(
+                  (s: { userId: string; name: string }) => ({
+                    value: s.userId,
+                    label: s.name,
+                  }),
+                )}
+                className="min-w-0"
+                triggerClassName="sm:min-w-[9rem]"
+              />
+              <input
+                type="date"
+                className="rounded border border-input bg-background px-2 py-1 text-sm text-foreground"
+                value={fairnessPeriod.startDate}
+                onChange={(e) => {
+                  setFairnessPeriod((p) => ({ ...p, startDate: e.target.value }));
+                  setFairnessPage(1);
+                }}
+              />
+              <input
+                type="date"
+                className="rounded border border-input bg-background px-2 py-1 text-sm text-foreground"
+                value={fairnessPeriod.endDate}
+                onChange={(e) => {
+                  setFairnessPeriod((p) => ({ ...p, endDate: e.target.value }));
+                  setFairnessPage(1);
+                }}
+              />
+            </div>
+          </>
+        }
+      >
           {fairnessLoading && (
             <div className="space-y-2">
               <Skeleton className="h-4 w-48" />
@@ -688,7 +673,7 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 <div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-landing-steel">
                     Fairness score
                   </p>
                   <p
@@ -698,10 +683,10 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-landing-steel">
                     Team avg premium ratio
                   </p>
-                  <p className="text-lg font-semibold text-foreground">
+                  <p className="text-lg font-semibold text-brand-teal-deep">
                     {((fairness.averagePremiumRatio ?? 0) * 100).toFixed(0)}%
                   </p>
                 </div>
@@ -725,17 +710,17 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                   if (!staff) return null;
                   return (
                     <div
-                      className={`rounded-lg border px-3 py-2 text-sm ${staff.flagged ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20" : "border-border bg-muted/30"}`}
+                      className={`rounded-lg border px-3 py-2 text-sm ${staff.flagged ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20" : "border-landing-hairline bg-landing-surface/50"}`}
                     >
-                      <p className="font-medium text-foreground">
+                      <p className="font-medium text-brand-teal-deep">
                         {staff.name}
                       </p>
-                      <p className="text-muted-foreground">
+                      <p className="text-landing-steel">
                         Premium: {staff.premiumShiftsAssigned} /{" "}
                         {staff.totalShiftsAssigned} shifts (
                         {(staff.premiumRatio * 100).toFixed(0)}%)
                       </p>
-                      <p className="text-muted-foreground">
+                      <p className="text-landing-steel">
                         Deviation:{" "}
                         <strong
                           className={
@@ -743,7 +728,7 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                               ? "text-green-600"
                               : staff.deviationFromAverage < -0.1
                                 ? "text-destructive"
-                                : "text-foreground"
+                                : "text-brand-teal-deep"
                           }
                         >
                           {(staff.deviationFromAverage * 100).toFixed(0)}%
@@ -779,8 +764,8 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                     <Radar
                       name="Premium %"
                       dataKey="ratio"
-                      stroke="hsl(var(--primary))"
-                      fill="hsl(var(--primary))"
+                      stroke={CHART_COLORS.primary}
+                      fill={CHART_COLORS.primary}
                       fillOpacity={0.3}
                     />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -788,68 +773,66 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                 </ResponsiveContainer>
               )}
 
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[500px] text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                      <th className="py-1">Staff</th>
-                      <th className="py-1">Total shifts</th>
-                      <th className="py-1">Premium</th>
-                      <th className="py-1">Ratio</th>
-                      <th className="py-1">vs avg</th>
-                      <th className="py-1">Flag</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {fairnessPagination
-                      .paginate(fairnessPage)
-                      .map(
-                        (s: {
-                          userId: string;
-                          name: string;
-                          totalShiftsAssigned: number;
-                          premiumShiftsAssigned: number;
-                          premiumRatio: number;
-                          deviationFromAverage?: number;
-                          flagged?: boolean;
-                        }) => (
-                          <tr
-                            key={s.userId}
-                            className={`border-b border-border ${s.userId === selectedStaffId ? "bg-muted" : ""}`}
+              <Table className="min-w-[500px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Staff</TableHead>
+                    <TableHead>Total shifts</TableHead>
+                    <TableHead>Premium</TableHead>
+                    <TableHead>Ratio</TableHead>
+                    <TableHead>vs avg</TableHead>
+                    <TableHead>Flag</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fairnessPagination
+                    .paginate(fairnessPage)
+                    .map(
+                      (s: {
+                        userId: string;
+                        name: string;
+                        totalShiftsAssigned: number;
+                        premiumShiftsAssigned: number;
+                        premiumRatio: number;
+                        deviationFromAverage?: number;
+                        flagged?: boolean;
+                      }) => (
+                        <TableRow
+                          key={s.userId}
+                          className={s.userId === selectedStaffId ? "bg-brand-green/[0.06]" : ""}
+                        >
+                          <TableCell>{s.name}</TableCell>
+                          <TableCell>{s.totalShiftsAssigned}</TableCell>
+                          <TableCell>
+                            {s.premiumShiftsAssigned}
+                          </TableCell>
+                          <TableCell>
+                            {(s.premiumRatio * 100).toFixed(0)}%
+                          </TableCell>
+                          <TableCell
+                            className={(s.deviationFromAverage ?? 0) > 0 ? "text-green-600" : (s.deviationFromAverage ?? 0) < -0.1 ? "text-destructive" : ""}
                           >
-                            <td className="py-1.5 text-foreground">{s.name}</td>
-                            <td className="py-1.5">{s.totalShiftsAssigned}</td>
-                            <td className="py-1.5">
-                              {s.premiumShiftsAssigned}
-                            </td>
-                            <td className="py-1.5">
-                              {(s.premiumRatio * 100).toFixed(0)}%
-                            </td>
-                            <td
-                              className={`py-1.5 ${(s.deviationFromAverage ?? 0) > 0 ? "text-green-600" : (s.deviationFromAverage ?? 0) < -0.1 ? "text-destructive" : ""}`}
-                            >
-                              {s.deviationFromAverage != null
-                                ? `${(s.deviationFromAverage * 100).toFixed(0)}%`
-                                : "—"}
-                            </td>
-                            <td className="py-1.5">
-                              {s.flagged ? (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs border-amber-400 text-amber-600"
-                                >
-                                  ⚠
-                                </Badge>
-                              ) : (
-                                "—"
-                              )}
-                            </td>
-                          </tr>
-                        ),
-                      )}
-                  </tbody>
-                </table>
-              </div>
+                            {s.deviationFromAverage != null
+                              ? `${(s.deviationFromAverage * 100).toFixed(0)}%`
+                              : "—"}
+                          </TableCell>
+                          <TableCell>
+                            {s.flagged ? (
+                              <Badge
+                                variant="outline"
+                                className="text-xs border-amber-400 text-amber-600"
+                              >
+                                ⚠
+                              </Badge>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ),
+                    )}
+                </TableBody>
+              </Table>
               <PaginationControls
                 currentPage={fairnessPage}
                 totalPages={fairnessPagination.totalPages}
@@ -857,21 +840,15 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
               />
             </div>
           )}
-        </CardContent>
-      </Card>
+      </DashboardCard>
 
       {/* Hours bar chart for selected location range */}
       {!hoursLoading && hoursDist.length > 0 && (
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-base">
-              Hours bar — max {maxHours.toFixed(0)}h
-            </CardTitle>
-            <CardDescription>
-              Comparison of all staff hours in selected period
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <DashboardCard
+          title={`Hours bar — max ${maxHours.toFixed(0)}h`}
+          description="Comparison of all staff hours in selected period"
+          hoverable
+        >
             <div className="space-y-1.5">
               {(
                 hoursDist as {
@@ -881,31 +858,30 @@ export function AnalyticsClient({ locations }: AnalyticsClientProps) {
                 }[]
               ).map((row) => (
                 <div key={row.userId} className="flex items-center gap-2">
-                  <div className="w-28 truncate text-sm text-foreground">
+                  <div className="w-28 truncate text-sm text-brand-teal-deep">
                     {row.name}
                   </div>
-                  <div className="h-4 flex-1 overflow-hidden rounded bg-muted">
+                  <div className="h-4 flex-1 overflow-hidden rounded bg-landing-surface">
                     <div
                       className="h-full rounded transition-all"
                       style={{
                         width: `${Math.min(100, (row.totalHours / maxHours) * 100)}%`,
                         background:
                           row.totalHours >= 40
-                            ? "hsl(var(--destructive) / 0.7)"
+                            ? CHART_COLORS.accentOrange
                             : row.totalHours >= 35
                               ? "#f59e0b99"
-                              : "hsl(var(--primary) / 0.6)",
+                              : CHART_COLORS.primary,
                       }}
                     />
                   </div>
-                  <span className="w-10 text-right text-sm text-muted-foreground">
+                  <span className="w-10 text-right text-sm text-landing-steel">
                     {row.totalHours}h
                   </span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+        </DashboardCard>
       )}
     </div>
   );

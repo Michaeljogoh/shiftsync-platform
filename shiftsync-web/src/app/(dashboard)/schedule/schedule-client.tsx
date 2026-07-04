@@ -27,6 +27,11 @@ import { ShiftDetailSheet } from './shift-detail-sheet';
 import { CreateShiftForm } from './create-shift-form';
 import { AssignStaffModal } from './assign-staff-modal';
 import { ShiftEditModal } from './shift-edit-modal';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { DashboardCard } from '@/components/dashboard/dashboard-card';
+
+const primaryBtnClass =
+  'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
 
 async function fetchShiftsClient(
   locationId: string | undefined,
@@ -157,10 +162,8 @@ export function ScheduleClient({
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-foreground">Schedule</h1>
-        </div>
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <PageHeader title="Schedule" description="View and manage shifts across locations." />
         <ScheduleControls
           week={week}
           onWeekChange={setWeek}
@@ -198,10 +201,8 @@ export function ScheduleClient({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-foreground">Schedule</h1>
-      </div>
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <PageHeader title="Schedule" description="View and manage shifts across locations." />
       <ScheduleControls
         week={week}
         onWeekChange={setWeek}
@@ -215,12 +216,14 @@ export function ScheduleClient({
         hasDrafts={hasDrafts}
       />
       {shifts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card px-6 py-12 text-center">
-          <p className="text-sm font-medium text-foreground">No shifts scheduled yet.</p>
-          <Button className="mt-4" onClick={() => setCreateOpen(true)}>
-            + Add Shift
-          </Button>
-        </div>
+        <DashboardCard title="No shifts yet" description="Get started by adding your first shift for this week.">
+          <div className="flex flex-col items-center py-6 text-center">
+            <p className="text-sm font-medium text-landing-steel">No shifts scheduled yet.</p>
+            <Button className={`mt-4 ${primaryBtnClass}`} onClick={() => setCreateOpen(true)}>
+              <PlusIcon className="mr-1.5 size-4" /> Add Shift
+            </Button>
+          </div>
+        </DashboardCard>
       ) : viewMode === 'calendar' && isMobile ? (
         <SingleDayCalendarView
           shifts={shifts}

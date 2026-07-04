@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const LOGIN_PATH = "/login";
+const SIGNUP_PATH = "/signup";
+const LANDING_PATH = "/";
+const AUTH_PATHS = new Set([LOGIN_PATH, SIGNUP_PATH]);
 const ACCESS_TOKEN_COOKIE = "accessToken";
 const SESSION_COOKIE = "session";
 
@@ -44,10 +47,14 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const accessToken = req.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
 
-  // Public: login page and static assets
-  if (pathname === LOGIN_PATH) {
+  // Public: landing page, login, and static assets
+  if (pathname === LANDING_PATH) {
+    return NextResponse.next();
+  }
+
+  if (AUTH_PATHS.has(pathname)) {
     if (accessToken) {
-      const returnUrl = req.nextUrl.searchParams.get("returnUrl") ?? "/";
+      const returnUrl = req.nextUrl.searchParams.get("returnUrl") ?? "/dashboard";
       return NextResponse.redirect(new URL(returnUrl, req.url));
     }
     return NextResponse.next();

@@ -2,12 +2,7 @@
 
 import { useMemo } from 'react';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { FormSheet } from '@/components/dashboard/form-sheet';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api/client/client';
@@ -206,56 +201,56 @@ export function AssignStaffModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" showCloseButton={true}>
-        <DialogHeader>
-          <DialogTitle>Assign staff</DialogTitle>
-        </DialogHeader>
-        {!shift ? (
-          <p className="text-sm text-muted-foreground">No shift selected.</p>
-        ) : isLoading ? (
-          <Skeleton className="h-48 w-full" />
-        ) : (
-          <>
-            <p className="text-xs text-muted-foreground">
-              Available qualified staff (sorted by availability for this shift). Availability is shown in the shift&apos;s location timezone ({tzAbbrev}).
-            </p>
-            <ul className="max-h-80 space-y-1 overflow-auto">
-              {sortedUsers.map((user) => {
-                const name = `${user.firstName} ${user.lastName}`;
-                const skillNames = user.skills?.map((s) => s.name).join(', ') ?? '—';
-                const windows = availabilityByUserId.get(user.id);
-                const availabilityLabel = windows?.length
-                  ? formatAvailabilityInShiftTz(windows, tzAbbrev)
-                  : null;
-                return (
-                  <li
-                    key={user.id}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted p-2"
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Assign staff"
+      size="xl"
+    >
+      {!shift ? (
+        <p className="text-sm text-muted-foreground">No shift selected.</p>
+      ) : isLoading ? (
+        <Skeleton className="h-48 w-full" />
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">
+            Available qualified staff (sorted by availability for this shift). Availability is shown in the shift&apos;s location timezone ({tzAbbrev}).
+          </p>
+          <ul className="max-h-80 space-y-1 overflow-auto">
+            {sortedUsers.map((user) => {
+              const name = `${user.firstName} ${user.lastName}`;
+              const skillNames = user.skills?.map((s) => s.name).join(', ') ?? '—';
+              const windows = availabilityByUserId.get(user.id);
+              const availabilityLabel = windows?.length
+                ? formatAvailabilityInShiftTz(windows, tzAbbrev)
+                : null;
+              return (
+                <li
+                  key={user.id}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted p-2"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground">{name}</p>
+                    <p className="text-xs text-muted-foreground">Skills: {skillNames}</p>
+                    {availabilityLabel != null && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Availability: {availabilityLabel}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => runAssign(user.id, undefined, name)}
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground">{name}</p>
-                      <p className="text-xs text-muted-foreground">Skills: {skillNames}</p>
-                      {availabilityLabel != null && (
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          Availability: {availabilityLabel}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      size="sm"
-                      className="shrink-0"
-                      onClick={() => runAssign(user.id, undefined, name)}
-                    >
-                      Assign
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+                    Assign
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </FormSheet>
   );
 }

@@ -21,20 +21,16 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { FormSheet } from '@/components/dashboard/form-sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronsUpDownIcon, BellIcon, LogOutIcon, UserIcon, KeyIcon } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { apiClient } from '@/lib/api/client/client';
 import { toast } from 'sonner';
+
+const primaryBtnClass =
+  'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -68,14 +64,14 @@ export function NavUser() {
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                className="rounded-xl data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent/80"
               >
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg text-sm font-medium bg-primary/10 text-primary">{initials}</AvatarFallback>
+                <Avatar className="h-9 w-9 rounded-xl">
+                  <AvatarFallback className="rounded-xl bg-brand-green text-sm font-bold text-brand-teal-deep">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{displayName}</span>
-                  <span className="truncate text-xs text-muted-foreground">{displayEmail}</span>
+                  <span className="truncate font-semibold text-sidebar-foreground">{displayName}</span>
+                  <span className="truncate text-xs text-sidebar-foreground/60">{displayEmail}</span>
                 </div>
                 <ChevronsUpDownIcon className="ml-auto size-4" />
               </SidebarMenuButton>
@@ -114,14 +110,14 @@ export function NavUser() {
         </SidebarMenuItem>
       </SidebarMenu>
 
-      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
-      <NotifDialog open={notifOpen} onOpenChange={setNotifOpen} />
-      <PasswordDialog open={pwOpen} onOpenChange={setPwOpen} />
+      <ProfileSheet open={profileOpen} onOpenChange={setProfileOpen} />
+      <NotifSheet open={notifOpen} onOpenChange={setNotifOpen} />
+      <PasswordSheet open={pwOpen} onOpenChange={setPwOpen} />
     </>
   );
 }
 
-function ProfileDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function ProfileSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const session = useAuthStore((s) => s.session);
   const [form, setForm] = useState({
     firstName: session?.user?.firstName ?? '',
@@ -151,42 +147,43 @@ function ProfileDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>My profile</DialogTitle>
-          <DialogDescription>Update your personal information.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">First name</label>
-              <Input value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Last name</label>
-              <Input value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} />
-            </div>
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="My profile"
+      description="Update your personal information."
+      footer={
+        <>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={save} disabled={saving} className={primaryBtnClass}>Save</Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">First name</label>
+            <Input value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium">Phone</label>
-            <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+1 555 000 0000" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Desired hours/week</label>
-            <Input type="number" value={form.desiredHoursPerWeek} onChange={(e) => setForm((f) => ({ ...f, desiredHoursPerWeek: e.target.value }))} min={0} max={60} placeholder="e.g. 40" />
+            <label className="text-sm font-medium">Last name</label>
+            <Input value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Phone</label>
+          <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+1 555 000 0000" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Desired hours/week</label>
+          <Input type="number" value={form.desiredHoursPerWeek} onChange={(e) => setForm((f) => ({ ...f, desiredHoursPerWeek: e.target.value }))} min={0} max={60} placeholder="e.g. 40" />
+        </div>
+      </div>
+    </FormSheet>
   );
 }
 
-function NotifDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NotifSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const [notifyInApp, setNotifyInApp] = useState(true);
   const [notifyEmail, setNotifyEmail] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -205,38 +202,39 @@ function NotifDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: 
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Notification preferences</DialogTitle>
-          <DialogDescription>Choose how you receive notifications from ShiftSync.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-border p-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">In-app notifications</p>
-              <p className="text-xs text-muted-foreground">Show badge and notification center entries</p>
-            </div>
-            <input type="checkbox" checked={notifyInApp} onChange={(e) => setNotifyInApp(e.target.checked)} className="h-4 w-4" />
-          </label>
-          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-border p-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">Email notifications</p>
-              <p className="text-xs text-muted-foreground">Receive emails for schedule changes and swap updates</p>
-            </div>
-            <input type="checkbox" checked={notifyEmail} onChange={(e) => setNotifyEmail(e.target.checked)} className="h-4 w-4" />
-          </label>
-        </div>
-        <DialogFooter>
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Notification preferences"
+      description="Choose how you receive notifications from ShiftSync."
+      footer={
+        <>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>Save preferences</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button onClick={save} disabled={saving} className={primaryBtnClass}>Save preferences</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-border p-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">In-app notifications</p>
+            <p className="text-xs text-muted-foreground">Show badge and notification center entries</p>
+          </div>
+          <input type="checkbox" checked={notifyInApp} onChange={(e) => setNotifyInApp(e.target.checked)} className="h-4 w-4" />
+        </label>
+        <label className="flex cursor-pointer items-center justify-between rounded-lg border border-border p-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Email notifications</p>
+            <p className="text-xs text-muted-foreground">Receive emails for schedule changes and swap updates</p>
+          </div>
+          <input type="checkbox" checked={notifyEmail} onChange={(e) => setNotifyEmail(e.target.checked)} className="h-4 w-4" />
+        </label>
+      </div>
+    </FormSheet>
   );
 }
 
-function PasswordDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function PasswordSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -259,31 +257,32 @@ function PasswordDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Change password</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Current password</label>
-            <Input type="password" value={form.currentPassword} onChange={(e) => setForm((f) => ({ ...f, currentPassword: e.target.value }))} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">New password</label>
-            <Input type="password" value={form.newPassword} onChange={(e) => setForm((f) => ({ ...f, newPassword: e.target.value }))} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Confirm new password</label>
-            <Input type="password" value={form.confirm} onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))} />
-          </div>
-        </div>
-        <DialogFooter>
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Change password"
+      footer={
+        <>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>Change password</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button onClick={save} disabled={saving} className={primaryBtnClass}>Change password</Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Current password</label>
+          <Input type="password" value={form.currentPassword} onChange={(e) => setForm((f) => ({ ...f, currentPassword: e.target.value }))} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">New password</label>
+          <Input type="password" value={form.newPassword} onChange={(e) => setForm((f) => ({ ...f, newPassword: e.target.value }))} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Confirm new password</label>
+          <Input type="password" value={form.confirm} onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))} />
+        </div>
+      </div>
+    </FormSheet>
   );
 }

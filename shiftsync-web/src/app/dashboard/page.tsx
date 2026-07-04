@@ -1,70 +1,59 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { KpiCard } from "@/components/dashboard/kpi-card";
+import { DashboardHero } from "@/components/dashboard/home/dashboard-hero";
+import {
+  DashboardAlertsStrip,
+  type DashboardAlert,
+} from "@/components/dashboard/home/dashboard-alerts-strip";
+import { DashboardMetricsChart } from "@/components/dashboard/home/dashboard-metrics-chart";
+import { DashboardUnderstaffedPanel } from "@/components/dashboard/home/dashboard-understaffed-panel";
+import { DashboardPendingSwapsPanel } from "@/components/dashboard/home/dashboard-pending-swaps-panel";
+import { DashboardLocationGrid } from "@/components/dashboard/home/dashboard-location-grid";
+import { DashboardQuickActions } from "@/components/dashboard/home/dashboard-quick-actions";
+import { StaffDashboardSections } from "@/components/dashboard/home/staff-dashboard-sections";
+import {
+  CHART_SERIES,
+  chartAxisStyle,
+  chartTooltipStyle,
+} from "@/components/dashboard/chart-theme";
 import { apiClient } from "@/lib/api/client/client";
 import { useAuthStore } from "@/lib/stores/auth.store";
 import { RoleGate } from "@/components/shared/RoleGate";
-import Link from "next/link";
 import {
   ArrowLeftRightIcon,
-  BarChart3Icon,
   CalendarIcon,
-  CircleAlertIcon,
-  ClockIcon,
-  FileTextIcon,
   MapPinIcon,
-  PackageOpenIcon,
   UsersIcon,
   WrenchIcon,
 } from "lucide-react";
-
-function StatCard({
-  title,
-  value,
-  change,
-  icon: Icon,
-  href,
-  loading,
-}: {
-  title: string;
-  value: string | number;
-  change?: string;
-  icon: React.ElementType;
-  href: string;
-  loading?: boolean;
-}) {
-  return (
-    <Link href={href} className="group">
-      <Card className="border-border bg-card transition-all hover:shadow-md hover:border-primary/30 h-full">
-        <CardContent className="flex items-center gap-4 p-5">
-          <div className="shrink-0 rounded-xl bg-primary/10 p-3 text-primary">
-            <Icon className="size-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <p className="text-2xl font-bold text-foreground">{value}</p>
-            )}
-            <p className="text-xs text-muted-foreground">{title}</p>
-          </div>
-          {change && (
-            <Badge
-              variant="secondary"
-              className="shrink-0 text-[10px] font-medium"
-            >
-              {change}
-            </Badge>
-          )}
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
 
 export default function DashboardPage() {
   const session = useAuthStore((s) => s.session);
@@ -104,12 +93,7 @@ export default function DashboardPage() {
     queryKey: ["dashboard-overview", "locations"],
     queryFn: async () => {
       const { data } = await apiClient.get<
-        {
-          id: string;
-          name: string;
-          isActive: boolean;
-          ianaTimezone: string;
-        }[]
+        { id: string; name: string; isActive: boolean; ianaTimezone: string }[]
       >("/locations");
       return data;
     },
@@ -208,15 +192,41 @@ export default function DashboardPage() {
     },
     enabled: role === "admin" || role === "manager",
   });
-  const auditLogs = [...auditLogsRaw].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  ).slice(0, 4);
+
+  const auditLogs = [...auditLogsRaw]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, 6);
 
   const activeStaff = users.filter(
     (u) => u.isActive && u.role === "staff",
   ).length;
   const activeLocations = locations.filter((l) => l.isActive).length;
   const overtimeCount = overtime.filter((o) => o.projectedHours >= 40).length;
+  const totalProjectedHours = overtime.reduce(
+    (sum, row) => sum + row.projectedHours,
+    0,
+  );
+  const fillRate =
+    understaffed.length === 0
+      ? 100
+      : Math.max(
+          0,
+          Math.round(
+            100 -
+              (understaffed.reduce(
+                (sum, s) => sum + (s.needed - s.assigned),
+                0,
+              ) /
+                Math.max(
+                  understaffed.reduce((sum, s) => sum + s.needed, 0),
+                  1,
+                )) *
+                100,
+          ),
+        );
   const upcomingShifts = myAssignments.filter(
     (a) => a.status !== "cancelled",
   ).length;
@@ -228,519 +238,309 @@ export default function DashboardPage() {
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
     .slice(0, 6);
 
-  const alerts: {
-    label: string;
-    color: "red" | "amber" | "blue";
-    count?: number;
-  }[] = [];
+  const roleChartData = useMemo(() => {
+    const counts = { admin: 0, manager: 0, staff: 0 };
+    for (const u of users) {
+      if (u.role in counts) counts[u.role as keyof typeof counts] += 1;
+    }
+    return [
+      { name: "Staff", value: counts.staff, color: CHART_SERIES[0] },
+      { name: "Managers", value: counts.manager, color: CHART_SERIES[1] },
+      { name: "Admins", value: counts.admin, color: CHART_SERIES[2] },
+    ].filter((d) => d.value > 0);
+  }, [users]);
+
+  const hoursChartData = useMemo(
+    () =>
+      [...overtime]
+        .sort((a, b) => b.projectedHours - a.projectedHours)
+        .slice(0, 6)
+        .map((o) => ({
+          name: o.name.split(" ")[0] ?? o.name,
+          hours: o.projectedHours,
+          fill:
+            o.projectedHours >= 40
+              ? "#fa6e39"
+              : o.projectedHours >= 35
+                ? "#7b3ff2"
+                : "#00ed64",
+        })),
+    [overtime],
+  );
+
+  const alerts: DashboardAlert[] = [];
   if (understaffed.length > 0)
     alerts.push({
       label: `${understaffed.length} understaffed shift${understaffed.length > 1 ? "s" : ""} this week`,
-      color: "red",
+      tone: "danger",
+      href: "/analytics",
       count: understaffed.length,
     });
   if (overtimeCount > 0)
     alerts.push({
-      label: `${overtimeCount} staff at/over 40h overtime`,
-      color: "red",
+      label: `${overtimeCount} staff at or over 40h`,
+      tone: "danger",
+      href: "/analytics",
     });
   if (overtime.length > overtimeCount && overtime.length > 0)
     alerts.push({
-      label: `${overtime.length - overtimeCount} staff approaching overtime limit`,
-      color: "amber",
+      label: `${overtime.length - overtimeCount} staff approaching overtime`,
+      tone: "warning",
+      href: "/analytics",
     });
   if (pendingSwaps.length > 0)
     alerts.push({
-      label: `${pendingSwaps.length} swap request${pendingSwaps.length > 1 ? "s" : ""} pending approval`,
-      color: "blue",
+      label: `${pendingSwaps.length} swap request${pendingSwaps.length > 1 ? "s" : ""} pending`,
+      tone: "info",
+      href: "/swaps",
     });
 
-  const dotColor = {
-    red: "bg-destructive",
-    amber: "bg-amber-500",
-    blue: "bg-blue-500",
-  };
+  const dateLabel = today.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const metricsLoading = usersLoading || overtimeLoading || swapsLoading;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">
-            Platform Overview
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            <span className="capitalize">{role}</span>
-            {" · "}
-            {today.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-[1400px] space-y-6 lg:space-y-8">
+      <DashboardHero
+        firstName={session?.user?.firstName ?? "there"}
+        role={role ?? "member"}
+        dateLabel={dateLabel}
+        alertCount={alerts.length}
+      />
 
-      {/* ── ADMIN ── */}
-      <RoleGate role={["admin"]}>
-        {/* Stat cards row */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Active Staff"
-            value={activeStaff}
-            icon={UsersIcon}
-            href="/staff"
-            loading={usersLoading}
-            change={`${users.length} total`}
-          />
-          <StatCard
-            title="Locations"
-            value={activeLocations}
-            icon={MapPinIcon}
-            href="/locations"
-            loading={locationsLoading}
-            change={`${locations.length} total`}
-          />
-          <StatCard
-            title="Total Users"
-            value={users.length}
-            icon={UsersIcon}
-            href="/staff"
-            loading={usersLoading}
-          />
-          <StatCard
-            title="Skills"
-            value={skills.length}
-            icon={WrenchIcon}
-            href="/skills"
-            loading={skillsLoading}
-          />
-        </div>
-
-        {/* Two-column layout */}
-        <div className="grid gap-6 lg:grid-cols-5">
-          {/* Left — 3/5 width */}
-          <div className="space-y-6 lg:col-span-3">
-            <RecentActivityTable logs={auditLogs} loading={auditLoading} />
-          </div>
-
-          {/* Right — 2/5 width */}
-          <div className="space-y-6 lg:col-span-2">
-            <Card className="border-border bg-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  <QuickAction
-                    icon={CalendarIcon}
-                    label="Schedule"
-                    href="/schedule"
-                    color="text-blue-600"
-                    bg="bg-blue-500/10"
-                  />
-                  <QuickAction
-                    icon={UsersIcon}
-                    label="Staff"
-                    href="/staff"
-                    color="text-indigo-600"
-                    bg="bg-indigo-500/10"
-                  />
-                  <QuickAction
-                    icon={MapPinIcon}
-                    label="Locations"
-                    href="/locations"
-                    color="text-rose-600"
-                    bg="bg-rose-500/10"
-                  />
-                  <QuickAction
-                    icon={BarChart3Icon}
-                    label="Analytics"
-                    href="/analytics"
-                    color="text-amber-600"
-                    bg="bg-amber-500/10"
-                  />
-                  <QuickAction
-                    icon={WrenchIcon}
-                    label="Skills"
-                    href="/skills"
-                    color="text-teal-600"
-                    bg="bg-teal-500/10"
-                  />
-                  <QuickAction
-                    icon={FileTextIcon}
-                    label="Audit"
-                    href="/audit"
-                    color="text-slate-600"
-                    bg="bg-slate-500/10"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Recent Staff — full width */}
-        <Card className="border-border bg-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-base">Recent Staff</CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/staff" className="text-xs text-primary">
-                View All
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50 text-left">
-                    <th className="px-4 py-2 font-medium text-muted-foreground">
-                      Name
-                    </th>
-                    <th className="px-4 py-2 font-medium text-muted-foreground">
-                      Email
-                    </th>
-                    <th className="px-4 py-2 font-medium text-muted-foreground">
-                      Role
-                    </th>
-                    <th className="px-4 py-2 font-medium text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usersLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => (
-                      <tr key={i} className="border-b border-border">
-                        <td className="px-4 py-2.5" colSpan={4}>
-                          <Skeleton className="h-4 w-full" />
-                        </td>
-                      </tr>
-                    ))
-                  ) : recentStaff.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="px-4 py-6 text-center text-muted-foreground"
-                      >
-                        No staff
-                      </td>
-                    </tr>
-                  ) : (
-                    recentStaff.map((u) => (
-                      <tr
-                        key={u.id}
-                        className="border-b border-border last:border-0 hover:bg-muted/30"
-                      >
-                        <td className="px-4 py-2.5 font-medium text-foreground">
-                          {u.firstName} {u.lastName}
-                        </td>
-                        <td className="px-4 py-2.5 text-muted-foreground">
-                          {u.email}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <Badge
-                            variant="secondary"
-                            className="capitalize text-xs"
-                          >
-                            {u.role}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <Badge
-                            variant={u.isActive ? "default" : "outline"}
-                            className="text-xs"
-                          >
-                            {u.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+      <RoleGate role={["admin", "manager"]}>
+        <DashboardAlertsStrip alerts={alerts} />
       </RoleGate>
 
-      {/* ── MANAGER ── */}
-      <RoleGate role={["manager"]}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Staff Members"
-            value={activeStaff}
-            icon={UsersIcon}
-            href="/staff"
-            loading={usersLoading}
-            change={`${users.length} total`}
+      {/* ADMIN + MANAGER overview */}
+      <RoleGate role={["admin", "manager"]}>
+        <section className="grid gap-4 xl:grid-cols-12 xl:gap-6">
+          <div className="grid gap-4 sm:grid-cols-2 xl:col-span-5 xl:grid-cols-2">
+            <KpiCard
+              title="Active Staff"
+              subtitle="Certified team members"
+              value={activeStaff}
+              href="/staff"
+              loading={usersLoading}
+              change={`${users.length} total users in system`}
+              footerLink="Manage staff roster"
+              icon={UsersIcon}
+              accent="green"
+            />
+            <KpiCard
+              title="Locations"
+              subtitle="Coastal Eats restaurants"
+              value={activeLocations}
+              href="/locations"
+              loading={locationsLoading}
+              change={`${locations.length} total configured`}
+              footerLink="View all locations"
+              icon={MapPinIcon}
+              accent="teal"
+            />
+            <KpiCard
+              title="Pending Swaps"
+              subtitle="Awaiting approval"
+              value={pendingSwaps.length}
+              href="/swaps"
+              loading={swapsLoading}
+              trend={pendingSwaps.length > 0 ? "up" : "neutral"}
+              delta={
+                pendingSwaps.length > 0
+                  ? `${pendingSwaps.length} open`
+                  : undefined
+              }
+              footerLink="Review swap queue"
+              icon={ArrowLeftRightIcon}
+              accent="purple"
+            />
+            <RoleGate role={["admin"]}>
+              <KpiCard
+                title="Skills Library"
+                subtitle="Roles and certifications"
+                value={skills.length}
+                href="/skills"
+                loading={skillsLoading}
+                footerLink="Edit skill definitions"
+                icon={WrenchIcon}
+                accent="orange"
+              />
+            </RoleGate>
+            <RoleGate role={["manager"]}>
+              <KpiCard
+                title="My Shifts"
+                subtitle="Assigned this week"
+                value={upcomingShifts}
+                href="/schedule"
+                loading={assignmentsLoading}
+                footerLink="Open weekly schedule"
+                icon={CalendarIcon}
+                accent="orange"
+              />
+            </RoleGate>
+          </div>
+
+          <div className="xl:col-span-7">
+            <DashboardMetricsChart
+              loading={metricsLoading}
+              totalHours={totalProjectedHours}
+              fillRate={fillRate}
+              openSwaps={pendingSwaps.length}
+              activeStaff={activeStaff}
+              understaffedCount={understaffed.length}
+            />
+          </div>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-3 lg:gap-6">
+          <DashboardUnderstaffedPanel
+            shifts={understaffed}
+            loading={false}
           />
-          <StatCard
-            title="Locations"
-            value={activeLocations}
-            icon={MapPinIcon}
-            href="/locations"
-            loading={locationsLoading}
-          />
-          <StatCard
-            title="Pending Approvals"
-            value={pendingSwaps.length}
-            icon={ArrowLeftRightIcon}
-            href="/swaps"
+          <DashboardPendingSwapsPanel
+            swaps={pendingSwaps}
             loading={swapsLoading}
           />
-          <StatCard
-            title="My Shifts"
-            value={upcomingShifts}
-            icon={CalendarIcon}
-            href="/schedule"
-            loading={assignmentsLoading}
-            change="this week"
+          <DashboardLocationGrid
+            locations={locations}
+            loading={locationsLoading}
           />
-        </div>
+        </section>
 
-        <div className="grid gap-6 lg:grid-cols-5">
-          <div className="space-y-6 lg:col-span-3">
+        <section className="grid gap-6 lg:grid-cols-5 lg:items-stretch">
+          <DashboardCard
+            className="lg:col-span-3"
+            title="Weekly Hours by Staff"
+            description="Top projected hours this week"
+            hoverable
+            action={
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-brand-green-dark"
+              >
+                <Link href="/analytics">View analytics</Link>
+              </Button>
+            }
+          >
+            {overtimeLoading ? (
+              <Skeleton className="h-[240px] w-full rounded-lg" />
+            ) : hoursChartData.length === 0 ? (
+              <p className="py-12 text-center text-sm text-landing-steel">
+                No hours data for this week
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={hoursChartData} barSize={28}>
+                  <CartesianGrid
+                    stroke={chartAxisStyle.axisLine.stroke}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="name"
+                    tick={chartAxisStyle.tick}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={chartAxisStyle.tick}
+                    axisLine={false}
+                    tickLine={false}
+                    width={32}
+                  />
+                  <Tooltip {...chartTooltipStyle} />
+                  <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
+                    {hoursChartData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </DashboardCard>
+
+          <DashboardCard
+            className="lg:col-span-2"
+            title="Team Composition"
+            description="Users by role"
+            hoverable
+          >
+            {usersLoading ? (
+              <Skeleton className="mx-auto h-[200px] w-[200px] rounded-full" />
+            ) : roleChartData.length === 0 ? (
+              <p className="py-8 text-center text-sm text-landing-steel">
+                No users yet
+              </p>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={roleChartData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={52}
+                      outerRadius={78}
+                      paddingAngle={3}
+                    >
+                      {roleChartData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip {...chartTooltipStyle} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-2 flex flex-wrap justify-center gap-3">
+                  {roleChartData.map((d) => (
+                    <div
+                      key={d.name}
+                      className="flex items-center gap-1.5 text-xs text-landing-steel"
+                    >
+                      <span
+                        className="size-2 rounded-full"
+                        style={{ backgroundColor: d.color }}
+                      />
+                      {d.name} ({d.value})
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </DashboardCard>
+
+          <div className="flex min-h-0 w-full lg:col-span-3">
             <RecentActivityTable logs={auditLogs} loading={auditLoading} />
           </div>
 
-          <div className="space-y-6 lg:col-span-2">
-            <Card className="border-border bg-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  <QuickAction
-                    icon={CalendarIcon}
-                    label="Schedule"
-                    href="/schedule"
-                    color="text-blue-600"
-                    bg="bg-blue-500/10"
-                  />
-                  <QuickAction
-                    icon={UsersIcon}
-                    label="Staff"
-                    href="/staff"
-                    color="text-indigo-600"
-                    bg="bg-indigo-500/10"
-                  />
-                  <QuickAction
-                    icon={ArrowLeftRightIcon}
-                    label="Swaps"
-                    href="/swaps"
-                    color="text-violet-600"
-                    bg="bg-violet-500/10"
-                  />
-                  <QuickAction
-                    icon={BarChart3Icon}
-                    label="Analytics"
-                    href="/analytics"
-                    color="text-amber-600"
-                    bg="bg-amber-500/10"
-                  />
-                  <QuickAction
-                    icon={MapPinIcon}
-                    label="Locations"
-                    href="/locations"
-                    color="text-rose-600"
-                    bg="bg-rose-500/10"
-                  />
-                  <QuickAction
-                    icon={ClockIcon}
-                    label="On-Duty"
-                    href="/on-duty"
-                    color="text-green-600"
-                    bg="bg-green-500/10"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+          <div className="flex min-h-0 w-full lg:col-span-2">
+            <DashboardQuickActions role={role} />
           </div>
-        </div>
+        </section>
 
-        {/* Recent Staff — full width */}
-        <Card className="border-border bg-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-base">Recent Staff</CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/staff" className="text-xs text-primary">
-                View All
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50 text-left">
-                    <th className="px-4 py-2 font-medium text-muted-foreground">
-                      Name
-                    </th>
-                    <th className="px-4 py-2 font-medium text-muted-foreground">
-                      Role
-                    </th>
-                    <th className="px-4 py-2 font-medium text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usersLoading
-                    ? Array.from({ length: 4 }).map((_, i) => (
-                        <tr key={i} className="border-b border-border">
-                          <td className="px-4 py-2.5" colSpan={3}>
-                            <Skeleton className="h-4 w-full" />
-                          </td>
-                        </tr>
-                      ))
-                    : recentStaff.map((u) => (
-                        <tr
-                          key={u.id}
-                          className="border-b border-border last:border-0 hover:bg-muted/30"
-                        >
-                          <td className="px-4 py-2.5 font-medium text-foreground">
-                            {u.firstName} {u.lastName}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <Badge
-                              variant="secondary"
-                              className="capitalize text-xs"
-                            >
-                              {u.role}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <Badge
-                              variant={u.isActive ? "default" : "outline"}
-                              className="text-xs"
-                            >
-                              {u.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <StaffTable
+          recentStaff={recentStaff}
+          loading={usersLoading}
+          showEmail={role === "admin"}
+        />
       </RoleGate>
 
-      {/* ── STAFF ── */}
+      {/* STAFF */}
       <RoleGate role={["staff"]}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
-          <StatCard
-            title="Upcoming Shifts"
-            value={upcomingShifts}
-            icon={CalendarIcon}
-            href="/schedule"
-            loading={assignmentsLoading}
-            change="this week"
-          />
-          <StatCard
-            title="Pending Requests"
-            value={pendingMySwaps}
-            icon={ArrowLeftRightIcon}
-            href="/swaps"
-            loading={mySwapsLoading}
-          />
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <Card className="border-border bg-card">
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <CardTitle className="text-base">
-                  My Swap & Drop Requests
-                </CardTitle>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/swaps" className="text-xs text-primary">
-                    View All
-                  </Link>
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {mySwapsLoading ? (
-                  <div className="space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-10 w-full rounded" />
-                    ))}
-                  </div>
-                ) : mySwaps.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    No active requests
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {mySwaps.slice(0, 5).map((s) => (
-                      <li
-                        key={s.id}
-                        className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
-                      >
-                        <Badge variant="outline" className="capitalize">
-                          {s.type}
-                        </Badge>
-                        <Badge
-                          variant={
-                            s.status.startsWith("pending")
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="text-xs capitalize"
-                        >
-                          {s.status.replace("_", " ")}
-                        </Badge>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-1">
-            <Card className="border-border bg-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  <QuickAction
-                    icon={CalendarIcon}
-                    label="Schedule"
-                    href="/schedule"
-                    color="text-blue-600"
-                    bg="bg-blue-500/10"
-                  />
-                  <QuickAction
-                    icon={ArrowLeftRightIcon}
-                    label="Swaps"
-                    href="/swaps"
-                    color="text-violet-600"
-                    bg="bg-violet-500/10"
-                  />
-                  <QuickAction
-                    icon={ClockIcon}
-                    label="On-Duty"
-                    href="/on-duty"
-                    color="text-green-600"
-                    bg="bg-green-500/10"
-                  />
-                  <QuickAction
-                    icon={PackageOpenIcon}
-                    label="Notifications"
-                    href="/notifications"
-                    color="text-orange-600"
-                    bg="bg-orange-500/10"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <StaffDashboardSections
+          upcomingShifts={upcomingShifts}
+          pendingRequests={pendingMySwaps}
+          swaps={mySwaps}
+          assignmentsLoading={assignmentsLoading}
+          swapsLoading={mySwapsLoading}
+        />
       </RoleGate>
     </div>
   );
@@ -753,105 +553,152 @@ function RecentActivityTable({
   logs: {
     id: string;
     action: string;
-    entityType: string;
-    entityId?: string;
-    actorId?: string;
     createdAt: string;
-    actor?: { email: string; firstName?: string; lastName?: string };
-    location?: { name: string };
+    actor?: { email: string };
+    actorId?: string;
   }[];
   loading?: boolean;
 }) {
   return (
-    <Card className="border-border bg-card">
-      <CardHeader className="flex flex-row items-center justify-between py-2">
-        <CardTitle className="text-base">Recent Activity</CardTitle>
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/audit" className="text-xs text-primary">
-            Full Log
-          </Link>
+    <DashboardCard
+      title="Recent Activity"
+      description="Latest schedule and admin changes"
+      action={
+        <Button variant="ghost" size="sm" asChild className="text-brand-green-dark">
+          <Link href="/audit">Full log</Link>
         </Button>
-      </CardHeader>
-      <CardContent className="p-0">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border bg-muted/50 text-left">
-              <th className="px-3 py-3 font-medium text-muted-foreground">
-                Timestamp
-              </th>
-              <th className="px-3 py-3 font-medium text-muted-foreground">
-                Actor
-              </th>
-              <th className="px-3 py-3 font-medium text-muted-foreground">
-                Action
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <tr key={i} className="border-b border-border">
-                  <td className="px-3 py-3" colSpan={3}>
-                    <Skeleton className="h-3.5 w-full" />
-                  </td>
-                </tr>
-              ))
-            ) : logs.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={3}
-                  className="px-3 py-4 text-center text-muted-foreground"
-                >
-                  No recent activity
-                </td>
-              </tr>
-            ) : (
-              logs.map((log) => (
-                <tr
-                  key={log.id}
-                  className="border-b border-border last:border-0 hover:bg-muted/30"
-                >
-                  <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {log.createdAt
-                      ? new Date(log.createdAt).toLocaleString()
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-1 text-xs text-foreground truncate max-w-[140px]">
-                    {log.actor?.email ?? log.actorId ?? "—"}
-                  </td>
-                  <td className="px-3 py-1 text-xs text-foreground">
-                    {log.action}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </CardContent>
-    </Card>
+      }
+      noPadding
+      hoverable
+      fillHeight
+      className="w-full"
+      contentClassName="flex flex-1 flex-col"
+    >
+      <div className="flex flex-1 flex-col">
+        <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Timestamp</TableHead>
+            <TableHead>Actor</TableHead>
+            <TableHead>Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <TableRow key={i}>
+                <TableCell colSpan={3}>
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+              </TableRow>
+            ))
+          ) : logs.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={3} className="py-8 text-center text-landing-steel">
+                No recent activity
+              </TableCell>
+            </TableRow>
+          ) : (
+            logs.map((log) => (
+              <TableRow key={log.id}>
+                <TableCell className="whitespace-nowrap font-mono text-xs text-landing-steel">
+                  {log.createdAt
+                    ? new Date(log.createdAt).toLocaleString()
+                    : "N/A"}
+                </TableCell>
+                <TableCell className="max-w-[140px] truncate text-landing-steel">
+                  {log.actor?.email ?? log.actorId ?? "N/A"}
+                </TableCell>
+                <TableCell>{log.action}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+      </div>
+    </DashboardCard>
   );
 }
 
-function QuickAction({
-  icon: Icon,
-  label,
-  href,
-  color,
-  bg,
+function StaffTable({
+  recentStaff,
+  loading,
+  showEmail,
 }: {
-  icon: React.ElementType;
-  label: string;
-  href: string;
-  color: string;
-  bg: string;
+  recentStaff: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    isActive: boolean;
+  }[];
+  loading?: boolean;
+  showEmail?: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className={`flex flex-col items-center gap-1.5 rounded-lg ${bg} px-3 py-3 text-center transition-colors hover:opacity-80`}
+    <DashboardCard
+      title="Recent Staff"
+      description="Newest team members across locations"
+      action={
+        <Button variant="ghost" size="sm" asChild className="text-brand-green-dark">
+          <Link href="/staff">View all</Link>
+        </Button>
+      }
+      noPadding
+      hoverable
     >
-      <Icon className={`size-5 ${color}`} />
-      <span className="text-xs font-medium text-foreground">{label}</span>
-    </Link>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            {showEmail && <TableHead>Email</TableHead>}
+            <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <TableRow key={i}>
+                <TableCell colSpan={showEmail ? 4 : 3}>
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+              </TableRow>
+            ))
+          ) : recentStaff.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={showEmail ? 4 : 3}
+                className="py-8 text-center text-landing-steel"
+              >
+                No staff
+              </TableCell>
+            </TableRow>
+          ) : (
+            recentStaff.map((u) => (
+              <TableRow key={u.id}>
+                <TableCell className="font-medium">
+                  {u.firstName} {u.lastName}
+                </TableCell>
+                {showEmail && (
+                  <TableCell className="text-landing-steel">{u.email}</TableCell>
+                )}
+                <TableCell>
+                  <Badge variant="secondary" className="capitalize text-xs">
+                    {u.role}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={u.isActive ? "default" : "outline"} className="text-xs">
+                    {u.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </DashboardCard>
   );
 }
