@@ -3,8 +3,9 @@ import type { NextRequest } from "next/server";
 
 const LOGIN_PATH = "/login";
 const SIGNUP_PATH = "/signup";
+const AUTH_CALLBACK_PATH = "/auth/callback";
 const LANDING_PATH = "/";
-const AUTH_PATHS = new Set([LOGIN_PATH, SIGNUP_PATH]);
+const AUTH_PATHS = new Set([LOGIN_PATH, SIGNUP_PATH, AUTH_CALLBACK_PATH]);
 const ACCESS_TOKEN_COOKIE = "accessToken";
 const SESSION_COOKIE = "session";
 

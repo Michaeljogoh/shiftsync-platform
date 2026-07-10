@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignupForm } from "@/components/signup-form";
+import { getServerAuthConfig } from "@/lib/auth/server-auth-config";
 
 function SignupFormFallback() {
   return (
@@ -17,14 +18,16 @@ function SignupFormFallback() {
   );
 }
 
-export default function SignupPage() {
+export default async function SignupPage() {
+  const { googleEnabled } = await getServerAuthConfig();
+
   return (
     <AuthShell
       title="Bring your whole team onto one schedule"
       description="From managers to line staff — give everyone the shifts, swaps, and updates they need in one place."
     >
       <Suspense fallback={<SignupFormFallback />}>
-        <SignupForm />
+        <SignupForm googleEnabled={googleEnabled} />
       </Suspense>
     </AuthShell>
   );

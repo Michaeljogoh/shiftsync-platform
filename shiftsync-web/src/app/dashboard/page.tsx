@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -54,6 +55,14 @@ import {
   UsersIcon,
   WrenchIcon,
 } from "lucide-react";
+
+const AdminCreateUserGuideCard = dynamic(
+  () =>
+    import("@/components/onboarding/admin-create-user-guide").then((mod) => ({
+      default: mod.AdminCreateUserGuideCard,
+    })),
+  { ssr: false },
+);
 
 export default function DashboardPage() {
   const session = useAuthStore((s) => s.session);
@@ -315,6 +324,10 @@ export default function DashboardPage() {
 
       <RoleGate role={["admin", "manager"]}>
         <DashboardAlertsStrip alerts={alerts} />
+      </RoleGate>
+
+      <RoleGate role={["admin"]}>
+        <AdminCreateUserGuideCard teamMemberCount={users.length} />
       </RoleGate>
 
       {/* ADMIN + MANAGER overview */}

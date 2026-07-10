@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { AuthSocialButtons } from '@/components/auth/auth-social-buttons';
+import { getGoogleAuthUrl } from '@/lib/auth/google-oauth';
 import { cn } from '@/lib/utils';
 
 interface SignupFields {
@@ -26,10 +28,12 @@ interface SignupFields {
 
 export interface SignupFormProps {
   className?: string;
+  googleEnabled?: boolean;
 }
 
 export function SignupForm({
   className,
+  googleEnabled = false,
   ...props
 }: SignupFormProps & React.ComponentProps<'div'>) {
   const router = useRouter();
@@ -73,6 +77,10 @@ export function SignupForm({
     router.push('/login');
   }
 
+  function signUpWithGoogle() {
+    window.location.assign(getGoogleAuthUrl('/dashboard'));
+  }
+
   return (
     <div className={cn('flex flex-col gap-8', className)} {...props}>
       <div className="space-y-2">
@@ -83,6 +91,25 @@ export function SignupForm({
           Get started with ShiftSync.
         </p>
       </div>
+
+      <AuthSocialButtons
+        onGoogle={signUpWithGoogle}
+        disabled={isSubmitting}
+        googleEnabled={googleEnabled}
+      />
+
+      {googleEnabled && (
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-landing-hairline" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-3 font-medium tracking-wider text-landing-muted">
+              or continue with email
+            </span>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
         <FieldGroup className="gap-5">
