@@ -35,6 +35,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { PlusIcon } from 'lucide-react';
+import {
+  CreateUserRoleHint,
+  StaffCreateUserHint,
+  useShowAdminCreateGuide,
+} from '@/components/onboarding/admin-create-user-guide';
+import { CREATE_USER_ROLE_HINTS } from '@/lib/onboarding/create-user-role-hints';
+import { cn } from '@/lib/utils';
 
 const primaryBtnClass =
   'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
@@ -77,14 +84,15 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
   const [staffPage, setStaffPage] = useState(1);
   const STAFF_PAGE_SIZE = 10;
 
-  const { register: regCreate, handleSubmit: handleCreate, reset: resetCreate, control: createControl, formState: { isSubmitting: createSubmitting, errors: createErrors } } = useForm<CreateUserForm>({
+  const { register: regCreate, handleSubmit: handleCreate, reset: resetCreate, control: createControl, watch: watchCreate, formState: { isSubmitting: createSubmitting, errors: createErrors } } = useForm<CreateUserForm>({
     defaultValues: { role: 'staff' },
   });
+  const selectedRole = watchCreate('role') ?? 'staff';
 
   async function onCreateUser(data: CreateUserForm) {
     try {
       await apiClient.post('/users', data);
-      toast.success('User created. They can log in with the provided email and password.');
+      toast.success(`User created. Share ${data.email} and the password you set so they can sign in.`);
       setCreateOpen(false);
       resetCreate();
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all({}) });
@@ -107,7 +115,20 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
     queryFn: () => fetchUsersClient(filters),
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: queryKeys.users.all({}),
+    queryFn: () => fetchUsersClient({}),
+  });
+
+  const showCreateGuide = useShowAdminCreateGuide(allUsers.length);
   const statusCode = (error as { response?: { status?: number } })?.response?.status;
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('create') === '1') {
+      setCreateOpen(true);
+    }
+  }, []);
 
   const filtered = useMemo(() => {
     if (activeFilter === 'all') return users;
@@ -182,12 +203,28 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
         description="Manage team members, roles, skills, and location certifications."
         actions={
           <RoleGate role={['admin']}>
-            <Button size="sm" className={`min-h-[44px] sm:min-h-0 ${primaryBtnClass}`} onClick={() => setCreateOpen(true)}>
+            <Button
+              size="sm"
+              data-onboarding="add-user"
+              className={cn(
+                'min-h-[44px] sm:min-h-0',
+                primaryBtnClass,
+                showCreateGuide && 'ring-2 ring-brand-green/50 ring-offset-2',
+              )}
+              onClick={() => setCreateOpen(true)}
+            >
               <PlusIcon className="mr-1.5 size-4" /> Add user
             </Button>
           </RoleGate>
         }
       />
+
+      <RoleGate role={['admin']}>
+        <StaffCreateUserHint
+          teamMemberCount={allUsers.length}
+          onAddUser={() => setCreateOpen(true)}
+        />
+      </RoleGate>
 
       <FormSheet
         open={createOpen}
@@ -202,6 +239,7 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
         }
       >
         <form id="create-user-form" onSubmit={handleCreate(onCreateUser)} className="space-y-4">
+          <CreateUserRoleHint role={selectedRole} />
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">First name *</label>
@@ -235,6 +273,9 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
               { value: 'admin', label: 'Admin' },
             ]}
           />
+          <p className="text-xs text-landing-muted">
+            {CREATE_USER_ROLE_HINTS[selectedRole].description}
+          </p>
         </form>
       </FormSheet>
 

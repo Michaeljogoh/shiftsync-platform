@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -16,24 +17,35 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { AuthSocialButtons } from '@/components/auth/auth-social-buttons';
 import type { LoginInput } from '@/lib/validations/auth';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { apiClient } from '@/lib/api/client/client';
 import type { LoginResponse } from '@/types/auth';
+import { getGoogleAuthUrl } from '@/lib/auth/google-oauth';
 import { cn } from '@/lib/utils';
 
 export interface LoginFormProps {
   className?: string;
+  googleEnabled?: boolean;
 }
 
 export function LoginForm({
   className,
+  googleEnabled = false,
   ...props
 }: LoginFormProps & React.ComponentProps<'div'>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl') ?? '/dashboard';
   const setAuth = useAuthStore((s) => s.setAuth);
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      toast.error(error);
+    }
+  }, [searchParams]);
 
   const {
     register,
@@ -84,6 +96,10 @@ export function LoginForm({
     }
   }
 
+  function signInWithGoogle() {
+    window.location.assign(getGoogleAuthUrl(returnUrl));
+  }
+
   return (
     <div className={cn('flex flex-col gap-8', className)} {...props}>
       <div className="space-y-2">
@@ -94,6 +110,25 @@ export function LoginForm({
           Sign in to manage schedules, swaps, and staff across your locations.
         </p>
       </div>
+
+      <AuthSocialButtons
+        onGoogle={signInWithGoogle}
+        disabled={isSubmitting}
+        googleEnabled={googleEnabled}
+      />
+
+      {googleEnabled && (
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-landing-hairline" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-3 font-medium tracking-wider text-landing-muted">
+              or continue with email
+            </span>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
         <FieldGroup className="gap-5">

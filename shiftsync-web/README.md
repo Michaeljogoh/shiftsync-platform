@@ -21,12 +21,17 @@ NEXT_PUBLIC_SOCKET_URL="http://localhost:3000"
 
 # Optional (server-side only): overrides backend base for Server Components/Actions
 API_URL="http://localhost:3000"
+
+# Production only (Render): warm API on first visit so login is not blocked by cold start
+# Set to "true" on the hosted web service; leave unset/false locally
+NEXT_PUBLIC_WAKE_API="false"
 ```
 
 Notes:
 - The browser API client uses: `NEXT_PUBLIC_API_URL` and talks to `${NEXT_PUBLIC_API_URL}/api/v1`.
 - Server-side fetches use: `API_URL` (or `NEXT_PUBLIC_API_URL` as fallback).
 - Socket.io uses: `NEXT_PUBLIC_SOCKET_URL` (or `NEXT_PUBLIC_API_URL` as fallback).
+- **Render cold start:** when `NEXT_PUBLIC_WAKE_API=true` and `NEXT_PUBLIC_API_URL` points to a non-localhost host, the app sends one throttled `GET /api/v1` ping per browser session (~15 min) on first page load. This wakes the API while the user is still on the landing page. Do not enable locally.
 
 ## Install
 

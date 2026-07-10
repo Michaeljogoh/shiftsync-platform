@@ -6,6 +6,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SocketStatus } from "@/components/shared/SocketStatus";
 import { useAuthStore } from "@/lib/stores/auth.store";
 import { useNotificationsStore } from "@/lib/stores/notifications.store";
+import { formatRoleWorkspace } from "@/lib/auth/role-label";
 import { cn } from "@/lib/utils";
 
 export function DashboardHeader({ pageTitle }: { pageTitle: string }) {
@@ -18,26 +19,30 @@ export function DashboardHeader({ pageTitle }: { pageTitle: string }) {
   const initials = session?.user
     ? `${session.user.firstName?.[0] ?? ""}${session.user.lastName?.[0] ?? ""}`
     : "?";
+  const roleWorkspace = formatRoleWorkspace(session?.role);
 
   return (
     <header className="sticky top-0 z-20 shrink-0 border-b border-landing-hairline/80 bg-white/95 backdrop-blur-md supports-backdrop-filter:bg-white/80">
-      <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="grid h-16 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
           <SidebarTrigger
             className="size-9 shrink-0 rounded-lg text-brand-teal-deep hover:bg-brand-green/10 hover:text-brand-green-dark md:hidden"
             aria-label="Toggle sidebar"
           />
-          <div className="min-w-0">
-            <h1 className="truncate font-display text-lg font-semibold tracking-tight text-brand-teal-deep sm:text-xl">
-              {pageTitle}
-            </h1>
-            <p className="truncate text-xs capitalize text-landing-muted sm:text-sm">
-              {session?.role ?? "member"} workspace
+          <h1 className="truncate font-display text-lg font-semibold tracking-tight text-brand-teal-deep sm:text-xl">
+            {pageTitle}
+          </h1>
+        </div>
+
+        <div className="hidden justify-center px-2 sm:flex">
+          <div className="rounded-full bg-brand-green-dark px-4 py-2 text-center">
+            <p className="font-display text-sm font-semibold capitalize text-white">
+              {roleWorkspace}
             </p>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-end gap-2 sm:gap-3">
           <div className="hidden rounded-full border border-landing-hairline bg-landing-surface/80 px-3 py-1.5 lg:flex">
             <SocketStatus compact />
           </div>
@@ -72,6 +77,14 @@ export function DashboardHeader({ pageTitle }: { pageTitle: string }) {
               {displayName}
             </span>
           </div>
+        </div>
+      </div>
+
+      <div className="flex justify-center border-t border-landing-hairline/60 px-4 py-2 sm:hidden">
+        <div className="rounded-full bg-brand-green-dark px-4 py-1.5 text-center">
+          <p className="font-display text-sm font-semibold capitalize text-white">
+            {roleWorkspace}
+          </p>
         </div>
       </div>
     </header>
