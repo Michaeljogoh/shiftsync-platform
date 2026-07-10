@@ -1,5 +1,6 @@
 import axios, { AxiosHeaders } from 'axios';
 
+import { performLogout } from '@/lib/auth/logout';
 import { useAuthStore } from '@/lib/stores/auth.store';
 
 const baseURL = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000'}/api/v1`;
@@ -68,10 +69,8 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         } catch {
           refreshQueue = [];
-          useAuthStore.getState().clearAuth();
           if (typeof window !== 'undefined') {
-            const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-            window.location.href = `/login?returnUrl=${returnUrl}`;
+            performLogout();
           }
           return Promise.reject(err);
         } finally {
@@ -79,10 +78,8 @@ apiClient.interceptors.response.use(
         }
       }
 
-      useAuthStore.getState().clearAuth();
       if (typeof window !== 'undefined') {
-        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/login?returnUrl=${returnUrl}`;
+        performLogout();
       }
     }
     return Promise.reject(err);

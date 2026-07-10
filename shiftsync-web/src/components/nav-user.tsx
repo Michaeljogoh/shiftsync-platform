@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Avatar,
   AvatarFallback,
@@ -26,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronsUpDownIcon, BellIcon, LogOutIcon, UserIcon, KeyIcon } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth.store';
+import { performLogout } from '@/lib/auth/logout';
 import { apiClient } from '@/lib/api/client/client';
 import { toast } from 'sonner';
 
@@ -34,9 +34,7 @@ const primaryBtnClass =
 
 export function NavUser() {
   const { isMobile } = useSidebar();
-  const router = useRouter();
   const session = useAuthStore((s) => s.session);
-  const clearAuth = useAuthStore((s) => s.clearAuth);
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -51,11 +49,7 @@ export function NavUser() {
     : '?';
 
   function handleLogout() {
-    router.push('/');
-    setTimeout(() => {
-      clearAuth();
-      router.refresh();
-    }, 100);
+    performLogout({ redirectTo: '/login' });
   }
 
   return (

@@ -322,12 +322,12 @@ export default function DashboardPage() {
         alertCount={alerts.length}
       />
 
-      <RoleGate role={["admin", "manager"]}>
-        <DashboardAlertsStrip alerts={alerts} />
-      </RoleGate>
-
       <RoleGate role={["admin"]}>
         <AdminCreateUserGuideCard teamMemberCount={users.length} />
+      </RoleGate>
+
+      <RoleGate role={["admin", "manager"]}>
+        <DashboardAlertsStrip alerts={alerts} />
       </RoleGate>
 
       {/* ADMIN + MANAGER overview */}

@@ -37,11 +37,9 @@ import {
 import { PlusIcon } from 'lucide-react';
 import {
   CreateUserRoleHint,
-  StaffCreateUserHint,
-  useShowAdminCreateGuide,
+  StaffPageGettingStartedTour,
 } from '@/components/onboarding/admin-create-user-guide';
 import { CREATE_USER_ROLE_HINTS } from '@/lib/onboarding/create-user-role-hints';
-import { cn } from '@/lib/utils';
 
 const primaryBtnClass =
   'rounded-full bg-brand-green text-brand-teal-deep hover:bg-brand-green/90 font-semibold';
@@ -115,12 +113,6 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
     queryFn: () => fetchUsersClient(filters),
   });
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: queryKeys.users.all({}),
-    queryFn: () => fetchUsersClient({}),
-  });
-
-  const showCreateGuide = useShowAdminCreateGuide(allUsers.length);
   const statusCode = (error as { response?: { status?: number } })?.response?.status;
 
   useEffect(() => {
@@ -198,6 +190,10 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6">
+      <RoleGate role={['admin']}>
+        <StaffPageGettingStartedTour onAddUser={() => setCreateOpen(true)} />
+      </RoleGate>
+
       <PageHeader
         title="Staff"
         description="Manage team members, roles, skills, and location certifications."
@@ -206,11 +202,7 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
             <Button
               size="sm"
               data-onboarding="add-user"
-              className={cn(
-                'min-h-[44px] sm:min-h-0',
-                primaryBtnClass,
-                showCreateGuide && 'ring-2 ring-brand-green/50 ring-offset-2',
-              )}
+              className={`min-h-[44px] sm:min-h-0 ${primaryBtnClass}`}
               onClick={() => setCreateOpen(true)}
             >
               <PlusIcon className="mr-1.5 size-4" /> Add user
@@ -218,13 +210,6 @@ export function StaffClient({ locations, skills }: StaffClientProps) {
           </RoleGate>
         }
       />
-
-      <RoleGate role={['admin']}>
-        <StaffCreateUserHint
-          teamMemberCount={allUsers.length}
-          onAddUser={() => setCreateOpen(true)}
-        />
-      </RoleGate>
 
       <FormSheet
         open={createOpen}
