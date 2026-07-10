@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -9,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { AuthIdentity } from './entities/auth-identity.entity';
 import {
   ROLE_PERMISSIONS,
   type Permission,
@@ -19,7 +21,25 @@ import type {
   SessionPayload,
   SessionUser,
 } from './auth.types';
+import type { GoogleProfile } from './google.strategy';
 import * as crypto from 'crypto';
+
+type AuthTokens = {
+  accessToken: string;
+  refreshToken: string;
+  session: SessionPayload;
+};
+
+type OAuthStatePayload = {
+  type: 'oauth_state';
+  returnUrl: string;
+  nonce: string;
+};
+
+type OAuthExchangePayload = {
+  type: 'oauth_exchange';
+  sub: string;
+};
 
 @Injectable()
 export class AuthService {
@@ -28,14 +48,28 @@ export class AuthService {
     private readonly usersRepo: Repository<User>,
     @InjectRepository(RefreshToken)
     private readonly refreshTokensRepo: Repository<RefreshToken>,
+    @InjectRepository(AuthIdentity)
+    private readonly authIdentitiesRepo: Repository<AuthIdentity>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
+
+  isGoogleAuthEnabled(): boolean {
+    return Boolean(
+      this.configService.get<string>('GOOGLE_CLIENT_ID') &&
+        this.configService.get<string>('GOOGLE_CLIENT_SECRET'),
+    );
+  }
 
   async validateUser(email: string, password: string): Promise<User> {
     const user = await this.usersRepo.findOne({ where: { email } });
     if (!user || !user.isActive) {
       throw new UnauthorizedException();
+    }
+    if (!user.passwordHash) {
+      throw new UnauthorizedException(
+        'This account uses Google sign-in. Continue with Google instead.',
+      );
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
@@ -81,44 +115,92 @@ export class AuthService {
     };
   }
 
-  private async signAccessToken(user: User): Promise<string> {
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
+  createOAuthState(returnUrl: string): string {
+    const safeReturnUrl = this.sanitizeReturnUrl(returnUrl);
+    const payload: OAuthStatePayload = {
+      type: 'oauth_state',
+      returnUrl: safeReturnUrl,
+      nonce: crypto.randomUUID(),
     };
-    return this.jwtService.signAsync(payload);
+
+    return this.jwtService.sign(payload, { expiresIn: '10m' });
   }
 
-  private async issueRefreshToken(user: User): Promise<string> {
-    const rawToken = crypto.randomUUID().replace(/-/g, '');
-    const hash = await bcrypt.hash(rawToken, 12);
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+  parseOAuthState(state: string): { returnUrl: string } {
+    let payload: OAuthStatePayload;
+    try {
+      payload = this.jwtService.verify<OAuthStatePayload>(state);
+    } catch {
+      throw new BadRequestException('Invalid or expired OAuth state');
+    }
 
-    const token = this.refreshTokensRepo.create({
-      userId: user.id,
-      tokenHash: hash,
-      expiresAt,
-      revokedAt: null,
+    if (payload.type !== 'oauth_state') {
+      throw new BadRequestException('Invalid OAuth state');
+    }
+
+    return { returnUrl: this.sanitizeReturnUrl(payload.returnUrl) };
+  }
+
+  createOAuthExchangeCode(userId: string): string {
+    const payload: OAuthExchangePayload = {
+      type: 'oauth_exchange',
+      sub: userId,
+    };
+
+    return this.jwtService.sign(payload, { expiresIn: '60s' });
+  }
+
+  async exchangeOAuthCode(code: string): Promise<AuthTokens> {
+    let payload: OAuthExchangePayload;
+    try {
+      payload = this.jwtService.verify<OAuthExchangePayload>(code);
+    } catch {
+      throw new UnauthorizedException('Invalid or expired sign-in code');
+    }
+
+    if (payload.type !== 'oauth_exchange' || !payload.sub) {
+      throw new UnauthorizedException('Invalid sign-in code');
+    }
+
+    const user = await this.usersRepo.findOne({
+      where: { id: payload.sub },
     });
-    await this.refreshTokensRepo.save(token);
-    return rawToken;
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException();
+    }
+
+    return this.issueTokens(user);
+  }
+
+  async loginWithGoogle(profile: GoogleProfile): Promise<{
+    exchangeCode: string;
+    returnUrl: string;
+  }> {
+    if (!profile.emailVerified) {
+      throw new UnauthorizedException(
+        'Your Google email address is not verified.',
+      );
+    }
+
+    const user = await this.resolveGoogleUser(profile);
+    user.lastLoginAt = new Date();
+    await this.usersRepo.save(user);
+
+    return {
+      exchangeCode: this.createOAuthExchangeCode(user.id),
+      returnUrl: '/dashboard',
+    };
   }
 
   async login(
     email: string,
     password: string,
-  ): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    session: SessionPayload;
-  }> {
+  ): Promise<AuthTokens> {
     const user = await this.validateUser(email, password);
-    const session = this.buildSession(user);
-    const accessToken = await this.signAccessToken(user);
-    const refreshToken = await this.issueRefreshToken(user);
-    return { accessToken, refreshToken, session };
+    user.lastLoginAt = new Date();
+    await this.usersRepo.save(user);
+    return this.issueTokens(user);
   }
 
   async revokeRefreshToken(rawToken: string): Promise<void> {
@@ -135,11 +217,7 @@ export class AuthService {
 
   async refresh(
     rawToken: string,
-  ): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    session: SessionPayload;
-  }> {
+  ): Promise<AuthTokens> {
     const tokens = await this.refreshTokensRepo.find({
       relations: ['user'],
     });
@@ -166,15 +244,7 @@ export class AuthService {
     const user = await this.usersRepo.findOneOrFail({
       where: { id: matched.userId },
     });
-    const session = this.buildSession(user);
-    const accessToken = await this.signAccessToken(user);
-    const newRefreshToken = await this.issueRefreshToken(user);
-
-    return {
-      accessToken,
-      refreshToken: newRefreshToken,
-      session,
-    };
+    return this.issueTokens(user);
   }
 
   async getSessionForUser(user: SessionUser): Promise<SessionPayload> {
@@ -206,6 +276,11 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException();
     }
+    if (!user.passwordHash) {
+      throw new BadRequestException(
+        'Set a password first or continue using Google sign-in.',
+      );
+    }
     const valid = await bcrypt.compare(
       currentPassword,
       user.passwordHash,
@@ -216,5 +291,102 @@ export class AuthService {
     user.passwordHash = await bcrypt.hash(newPassword, 12);
     await this.usersRepo.save(user);
   }
-}
 
+  private async issueTokens(user: User): Promise<AuthTokens> {
+    const session = this.buildSession(user);
+    const accessToken = await this.signAccessToken(user);
+    const refreshToken = await this.issueRefreshToken(user);
+    return { accessToken, refreshToken, session };
+  }
+
+  private async signAccessToken(user: User): Promise<string> {
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+    return this.jwtService.signAsync(payload);
+  }
+
+  private async issueRefreshToken(user: User): Promise<string> {
+    const rawToken = crypto.randomUUID().replace(/-/g, '');
+    const hash = await bcrypt.hash(rawToken, 12);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    const token = this.refreshTokensRepo.create({
+      userId: user.id,
+      tokenHash: hash,
+      expiresAt,
+      revokedAt: null,
+    });
+    await this.refreshTokensRepo.save(token);
+    return rawToken;
+  }
+
+  private async resolveGoogleUser(profile: GoogleProfile): Promise<User> {
+    const existingIdentity = await this.authIdentitiesRepo.findOne({
+      where: {
+        provider: profile.provider,
+        providerAccountId: profile.providerAccountId,
+      },
+      relations: ['user'],
+    });
+
+    if (existingIdentity?.user) {
+      if (!existingIdentity.user.isActive) {
+        throw new UnauthorizedException(
+          'Your account is inactive. Contact your workspace admin.',
+        );
+      }
+      return existingIdentity.user;
+    }
+
+    const existingUser = await this.usersRepo.findOne({
+      where: { email: profile.email },
+    });
+
+    if (existingUser) {
+      if (!existingUser.isActive) {
+        throw new UnauthorizedException(
+          'Your account is inactive. Contact your workspace admin.',
+        );
+      }
+
+      await this.linkGoogleIdentity(existingUser, profile);
+      return existingUser;
+    }
+
+    const user = this.usersRepo.create({
+      email: profile.email,
+      passwordHash: null,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      role: 'staff',
+      isActive: true,
+    });
+    await this.usersRepo.save(user);
+    await this.linkGoogleIdentity(user, profile);
+    return user;
+  }
+
+  private async linkGoogleIdentity(
+    user: User,
+    profile: GoogleProfile,
+  ): Promise<void> {
+    const identity = this.authIdentitiesRepo.create({
+      userId: user.id,
+      provider: profile.provider,
+      providerAccountId: profile.providerAccountId,
+      email: profile.email,
+    });
+    await this.authIdentitiesRepo.save(identity);
+  }
+
+  private sanitizeReturnUrl(returnUrl: string): string {
+    if (!returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
+      return '/dashboard';
+    }
+    return returnUrl;
+  }
+}

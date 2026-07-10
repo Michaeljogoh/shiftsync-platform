@@ -26,8 +26,8 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   email!: string;
 
-  @Column({ type: 'varchar' })
-  passwordHash!: string;
+  @Column({ type: 'varchar', nullable: true })
+  passwordHash: string | null = null;
 
   @Column({ type: 'varchar', length: 100 })
   firstName!: string;

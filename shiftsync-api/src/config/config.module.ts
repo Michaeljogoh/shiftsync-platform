@@ -28,6 +28,8 @@ import * as Joi from 'joi';
         PUBLISH_BLOCK_UNFILLED_HEADCOUNT: Joi.string()
           .valid('true', 'false')
           .default('false'),
+        GOOGLE_CLIENT_ID: Joi.string().allow('').optional(),
+        GOOGLE_CLIENT_SECRET: Joi.string().allow('').optional(),
       }),
     }),
   ],
