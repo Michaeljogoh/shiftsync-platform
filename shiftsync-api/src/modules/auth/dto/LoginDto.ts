@@ -43,3 +43,9 @@ export class ChangePasswordDto {
   @MinLength(8)
   newPassword!: string;
 }
+
+export class OAuthExchangeDto {
+  @ApiProperty({ description: 'One-time code from Google OAuth callback' })
+  @IsNotEmpty()
+  code!: string;
+}

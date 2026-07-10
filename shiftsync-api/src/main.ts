@@ -14,9 +14,12 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') ?? 3000;
   const nodeEnv = configService.get<string>('NODE_ENV') ?? 'development';
 
+  const frontendUrl = configService.get<string>('FRONTEND_URL');
+
   app.enableCors({
-    origin:"*"
-  })
+    origin: frontendUrl ? [frontendUrl, 'http://localhost:3000'] : true,
+    credentials: true,
+  });
 
   // URI versioning: all routes under /api/v1/
   app.setGlobalPrefix('api/v1');
