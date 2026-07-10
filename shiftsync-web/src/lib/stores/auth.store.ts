@@ -13,6 +13,8 @@ import { closeSocket } from '@/lib/socket';
 
 export type Permission = string;
 
+export const AUTH_PERSIST_KEY = 'shiftsync-auth';
+
 export interface AuthStore {
   accessToken: string | null;
   refreshToken: string | null;
@@ -62,7 +64,7 @@ export const useAuthStore = create<AuthStore>()(
       },
     }),
     {
-      name: 'shiftsync-auth',
+      name: AUTH_PERSIST_KEY,
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
